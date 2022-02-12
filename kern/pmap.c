@@ -528,7 +528,7 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	pte_t* p_pte = pgdir_walk(pgdir, va, 0); //get page table entry
+	pte_t* p_pte = pgdir_walk(pgdir, va, 0);
 
 	if(!p_pte || !(*p_pte & PTE_P)){
 		return NULL;
