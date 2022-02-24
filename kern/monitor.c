@@ -14,6 +14,17 @@
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
+// ANSI Escape Color Codes 
+#define BLACK "\e[0;30m"
+#define RED "\e[0;31m"
+#define GREEN "\e[0;32m"
+#define YELLOW "\e[0;33m"
+#define BLUE "\e[0;34m"
+#define MAGENTA "\e[0;35m"
+#define CYAN "\e[0;36m"
+#define WHITE "\e[0;37m"
+#define RESET "\e[0m"
+
 
 struct Command {
 	const char *name;
@@ -26,6 +37,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "show", "Prints a string in color", mon_show},
+	{ "backtrace", "Shows backtrace", mon_backtrace},
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -62,6 +75,40 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	// LAB 1: Your code here.
     // HINT 1: use read_ebp().
     // HINT 2: print the current ebp on the first line (not current_ebp[0])
+
+	uint32_t* current_ebp = (uint32_t*) read_ebp();
+    while(current_ebp){
+        cprintf("ebp %08x  eip %08x", current_ebp, *(current_ebp+1));
+		cprintf(" args ");
+        cprintf("%08x ", *(current_ebp+2));
+        cprintf("%08x ", *(current_ebp+3));
+        cprintf("%08x ", *(current_ebp+4));
+        cprintf("%08x ", *(current_ebp+5));
+        cprintf("%08x\n", *(current_ebp+6));
+
+		struct Eipdebuginfo info;
+		debuginfo_eip(*(current_ebp+1),&info); // pass in eip and populate struct
+
+		cprintf("\t%s:%d: ", info.eip_file, info.eip_line);
+		cprintf("%.*s+%d\n",info.eip_fn_namelen, info.eip_fn_name, (*(current_ebp+1)) - info.eip_fn_addr);
+
+
+
+        current_ebp = (uint32_t*) *current_ebp;    
+    }
+
+	return 0;
+}
+
+int
+mon_show(int argc, char **argv, struct Trapframe *tf)
+{
+	if (argc == 1)
+		cprintf(RED"E" GREEN "X" BLUE "T" YELLOW "R" WHITE "A " MAGENTA "Credit\n" RESET);
+	else {
+		cprintf(RED"E" GREEN "X" BLUE "T" YELLOW "R" WHITE "A " MAGENTA "Credit: " RESET);
+		cprintf(GREEN "%s\n" RESET,argv[1]);
+	}
 	return 0;
 }
 
