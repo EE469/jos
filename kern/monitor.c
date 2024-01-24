@@ -23,8 +23,9 @@ struct Command {
 
 // LAB 1: add your command to here...
 static struct Command commands[] = {
-	{ "help", "Display this list of commands", mon_help },
-	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{"help", "Display this list of commands", mon_help},
+	{"kerninfo", "Display information about the kernel", mon_kerninfo},
+	{"backtrace", "Show the backtrace of the current kernel stack", mon_backtrace},
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -55,16 +56,46 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
-int
-mon_backtrace(int argc, char **argv, struct Trapframe *tf)
+int mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	// LAB 1: Your code here.
-    // HINT 1: use read_ebp().
-    // HINT 2: print the current ebp on the first line (not current_ebp[0])
+	// HINT 1: use read_ebp().
+        // HINT 2: print the current ebp on the first line (not current_ebp[0])
+	
+	uint32_t *ebp, eip, args[5];
+	struct Eipdebuginfo info;
+	// static int octalFlag = 0;
+
+	// if (!octalFlag)
+	// {
+	// 	cprintf("444544 decimal is %o octal!\n", 444544);
+	// 	octalFlag = 1;
+	// }
+
+	cprintf("Stack backtrace:\n");
+	for (ebp = (uint32_t *)read_ebp(); ebp != 0; ebp = (uint32_t *)*ebp)
+	{
+		eip = ebp[1];
+		args[0] = ebp[2];
+		args[1] = ebp[3];
+		args[2] = ebp[4];
+		args[3] = ebp[5];
+		args[4] = ebp[6];
+		cprintf("  ebp %08x  eip %08x  args %08x %08x %08x %08x %08x\n",
+				(uint32_t)ebp, eip, args[0], args[1], args[2], args[3], args[4]);
+
+		if (debuginfo_eip(eip, &info) == 0)
+		{
+			int corrected_line = info.eip_line;
+			if (corrected_line < 5)
+				corrected_line = 5;
+			cprintf("         %s:%d: %.*s+%d\n",
+					info.eip_file, corrected_line,
+					info.eip_fn_namelen, info.eip_fn_name, eip - info.eip_fn_addr);
+		}
+	}
 	return 0;
 }
-
-
 
 /***** Kernel monitor command interpreter *****/
 
