@@ -25,6 +25,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Show the backtrace fo the current kernel stack", mon_backtrace },
+	{ "show", "Display a beautiful ASCII art with 5 colors", mon_show },
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -61,9 +63,41 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	// LAB 1: Your code here.
     // HINT 1: use read_ebp().
     // HINT 2: print the current ebp on the first line (not current_ebp[0])
+
+	cprintf ("Stack backtrace:\n");
+
+	uint32_t* ebp = (uint32_t*) read_ebp();
+
+	while ((uint32_t) ebp != 0)
+	{
+		cprintf("  ebp %08x  eip %08x args ", ebp, *(ebp + 1));
+		for (int i=2; i<7; i++)
+		{
+			cprintf("%08x ", *(ebp+i));
+		}
+		cprintf("\n");
+		
+		struct Eipdebuginfo info;
+		int retval = debuginfo_eip(*(ebp + 1), &info);
+		cprintf("          %s:%d: %.*s+%d\n", info.eip_file, info.eip_line, info.eip_fn_namelen, info.eip_fn_name, *(ebp+1)-info.eip_fn_addr);
+
+		ebp = (uint32_t*)* ebp;
+	}
+
 	return 0;
 }
 
+int
+mon_show(int argc, char **argv, struct Trapframe *tf)
+{
+	cprintf("\e[1;31m .__           .__  .__                               .__       .___\n");
+	cprintf("\e[1;32m |  |__   ____ |  | |  |   ____   __  _  _____________|  |    __| _/\n");
+	cprintf("\e[1;33m |  |  \\_/ __ \\|  | |  |  /  _ \\  \\ \\/ \\/ /  _ \\_  __ \\  |   / __ | \n");
+	cprintf("\e[1;34m |   Y  \\  ___/|  |_|  |_(  <_> )  \\     (  <_> )  | \\/  |__/ /_/ | \n");
+	cprintf("\e[1;35m |___|  /\\___  >____/____/\\____/    \\/\\_/ \\____/|__|  |____/\\____ | \n");
+	cprintf("\e[1;36m      \\/     \\/                                                  \\/ \n\e[m");
+	return 0;
+}
 
 
 /***** Kernel monitor command interpreter *****/
