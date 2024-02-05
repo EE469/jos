@@ -102,11 +102,19 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
+
+	if (n == 0)
+	return nextfree;
 	
-	char* temp = nextfree;
-	nextfree += n / PGSIZE + ((n % PGSIZE) ? 1 : 0);
+	result = nextfree;
+
+	if (PGNUM(PADDR(nextfree + ROUNDUP(n, PGSIZE))) > npages) {
+		panic("boot alloc: out of memory");
+	}
+
+	nextfree += ROUNDUP(n, PGSIZE);
 	
-	return temp;
+	return result;
 }
 
 // Set up a two-level page table:
@@ -151,8 +159,8 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-	pages = (struct PageInfo *) boot_alloc(npages * sizeof(struct PageInfo));
-	memset(pages, 0, npages * sizeof(struct PageInfo));
+	pages = (struct PageInfo *) boot_alloc(ROUNDUP(npages * sizeof(struct PageInfo), PGSIZE));
+	memset(pages, 0, ROUNDUP(npages * sizeof(struct PageInfo), PGSIZE));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -255,15 +263,20 @@ page_init(void)
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
-	page_free_list = &pages[1];
 	size_t i;
 	for (i = 0; i < npages; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i+1];
+		page_free_list = &pages[i];
 	}
 	
 	pages[0].pp_ref = 1;
+	pages[0].pp_link = NULL;
+
+	for (i = (KERNBASE + IOPHYSMEM)/PGSIZE; i < (KERNBASE + EXTPHYSMEM)/PGSIZE; i++) {
+		pages[i].pp_ref = 1;
+		pages[i].pp_link = NULL;
+	}
 }
 
 //
@@ -291,7 +304,7 @@ page_alloc(int alloc_flags)
 
 	if (alloc_flags & ALLOC_ZERO)
 	{
-		memset(page2kva(page), '\0', sizeof(struct PageInfo *));
+		memset(page2kva(page), '\0', sizeof(struct PageInfo));
 	}
 
 	return page;
@@ -307,6 +320,11 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+	if (pp->pp_ref != 0 || pp->pp_link != NULL)
+	{
+		panic("pp_ref != 0 or pp_link != NULL");
+	}
+	pp->pp_link = page_free_list;
 }
 
 //
@@ -346,6 +364,7 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
+	
 	return NULL;
 }
 
