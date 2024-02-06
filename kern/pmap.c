@@ -136,7 +136,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+	// panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -273,7 +273,14 @@ page_init(void)
 	pages[0].pp_ref = 1;
 	pages[0].pp_link = NULL;
 
-	for (i = (KERNBASE + IOPHYSMEM)/PGSIZE; i < (KERNBASE + EXTPHYSMEM)/PGSIZE; i++) {
+	for (i = IOPHYSMEM; i < EXTPHYSMEM; i = i + PGSIZE) {
+		struct PageInfo * page = pa2page(i);
+		page->pp_ref = 1;
+		page->pp_link = NULL;
+	}
+
+	static char* nextfree;
+	for (i = EXTPHYSMEM; i < *nextfree; i = i + PGSIZE) {
 		pages[i].pp_ref = 1;
 		pages[i].pp_link = NULL;
 	}
