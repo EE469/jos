@@ -380,7 +380,54 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	
+	pde_t * pde = pgdir[PDX(va)];
+
+	if (pde != NULL & PTE_P) {
+		pde_t * pagetable = PTE_ADDR(pde);
+		pagetable = (pde_t) KADDR(pagetable);
+		pte_t * pte = pagetable[PTX(va)];
+	}
+
+	if (pde[PTE_P]) {
+		return KADDR(PTE_ADDR(pde) + PTX(va));
+	}
+	else if (create == 0) {
+		return NULL;
+	}
+	else if (create == 1) {
+		struct PageInfo * new_page = page_alloc(ALLOC_ZERO);
+		if (new_page == NULL) {
+			return NULL;
+		}
+		new_page->pp_ref++;
+		// assign entry in pgdir to page table base addr
+		// assign page table entry to new page
+		// return page table entry
+		
+		pgdir[PDX(va)] = page2pa(new_page) | PTE_P | PTE_U | PTE_W;
+		pte_t * p = page2kva(new_page);
+		
+		return &(p[PTX(va)]);
+	}
+	// else {
+	// 	pte_t * pte = pde[PTX(va)];
+	// 	if (pte[PTE_P]) {
+	// 		return pte;
+	// 	}
+	// 	else if (create) {
+	// 		struct PageInfo * new_page = page_alloc(ALLOC_ZERO);
+	// 		new_page->pp_ref++;
+	// 		// assign page table entry to new page
+	// 		// return page table entry
+	// 		pgdir[PDX(va)] = page2pa(new_page) | PTE_P | PTE_U | PTE_W;
+	// 		pte_t * p = page2kva(new_page);
+	// 		return ;
+	// 	}
+	// 	else {
+	// 		return NULL;
+	// 	}
+	// }
+
 	return NULL;
 }
 
