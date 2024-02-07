@@ -405,7 +405,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		// return page table entry
 		
 		pgdir[PDX(va)] = page2pa(new_page) | PTE_P | PTE_U | PTE_W;
-		pte_t * p = page2kva(new_page);
+		pde_t * p = page2kva(new_page);
 		
 		return &(p[PTX(va)]);
 	}
