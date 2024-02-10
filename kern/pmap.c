@@ -230,6 +230,12 @@ mem_init(void)
 
 	// Some more checks, only possible after kern_pgdir is installed.
 	check_page_installed_pgdir();
+
+	for (int i = 0;i < 1024;i++) {
+		if (kern_pgdir[i] & PTE_P) {
+			cprintf("PDE %d: Addr: 0x%x\n", i, i << 22, kern_pgdir[i] & 0xFFF);
+		}
+	}
 }
 
 // --------------------------------------------------------------
@@ -418,7 +424,7 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-	for (int i =0; i< size; i++) {
+	for (int i =0; i< size; i = i + PGSIZE) {
 		pte_t * pte = pgdir_walk(pgdir,(const void *  )(va + i),1);
 		*pte = PTE_ADDR(pa + i) | perm | PTE_P;
 
