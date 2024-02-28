@@ -166,8 +166,8 @@ mem_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
-	struct Env* envs = (struct Env *) boot_alloc(NENV * sizeof(struct Env));
-	memset(envs, 0, NENV * sizeof(struct Env));
+	envs = (struct Env *) boot_alloc(ROUNDUP(NENV * sizeof(struct Env), PGSIZE));
+	memset(envs, 0, ROUNDUP(NENV * sizeof(struct Env), PGSIZE));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -200,7 +200,7 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
-	boot_map_region(envs, UENVS, NENV * sizeof(struct Env), PADDR(envs), PTE_U | PTE_P);
+	boot_map_region(kern_pgdir, UENVS, ROUNDUP(NENV * sizeof(struct Env), PGSIZE), PADDR(envs), PTE_U | PTE_P);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -295,6 +295,13 @@ page_init(void)
 	pages[0].pp_ref = 1;
 	pages[0].pp_link = NULL;
 
+	// for (i = IOPHYSMEM; i < EXTPHYSMEM; i = i + PGSIZE) {
+	// 	struct PageInfo * page = pa2page(i);
+	// 	page->pp_ref = 1;
+	// 	page->pp_link = NULL;
+	// }
+
+	//static char* nextfree;
 	char * nextfree = boot_alloc(0);
 	for (i = npages_basemem; i < PGNUM(PADDR(nextfree)); i++) {
 		pages->pp_ref = 1;
@@ -480,8 +487,6 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 		}
 		*pte = PTE_ADDR(page2pa(pp)) | perm | PTE_P;
 	}
-
-
 
 	return 0;
 }
