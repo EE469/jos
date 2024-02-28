@@ -359,32 +359,34 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
-	// struct Elf* elf = (struct Elf*) binary;
-	// if (elf->e_magic != ELF_MAGIC) {
-	// 	panic("load icode: elf file error");
-	// }
+	struct Elf* elf = (struct Elf*) binary;
+	if (elf->e_magic != ELF_MAGIC) {
+		panic("load icode: elf file e_magic != ELF_MAGIC");
+	}
 
-	// struct Proghdr* ph = (struct Proghdr*) ((uint8_t*) elf + elf->e_phoff);
-	// struct Proghdr* end_ph = ph + elf->e_phnum;
+	struct Proghdr* ph = (struct Proghdr*) ((uint8_t*) elf + elf->e_phoff);
+	struct Proghdr* end_ph = ph + elf->e_phnum;
 
-	// lcr3(PADDR(e->env_pgdir));
-	// for (; ph < end_ph; ph++) {
-	// 	if (ph->p_type != ELF_PROG_LOAD) {
-	// 		region_alloc(e, (void *) ph->p_va, ph->p_memsz);
-	// 		memset((void*) ph->p_va, 0, ph->p_memsz);
-	// 		memcpy((void*) ph->p_va, (void*) (binary + ph->p_offset), ph->p_filesz);
-	// 	}
-	// }
-	// e->env_tf.tf_eip = elf->e_entry;
+	lcr3(PADDR(e->env_pgdir));
+	for (; ph < end_ph; ph++) {
+		if (ph->p_type == ELF_PROG_LOAD) {
+			if (ph->p_filesz > ph->p_memsz) {
+				panic("load icode: program header file size and mem size error");
+			}
+			region_alloc(e, (void *) ph->p_va, ph->p_memsz);
+			// set to 0 before so all but copied is 0
+			memset((void*) ph->p_va, 0, ph->p_memsz);
+			memcpy((void*) ph->p_va, (binary + ph->p_offset), ph->p_filesz);
+		}
+	}
+	e->env_tf.tf_eip = elf->e_entry;
 	// // Now map one page for the program's initial stack
 	// // at virtual address USTACKTOP - PGSIZE.
 	// // LAB 3: Your code here.
-	// region_alloc(e, (void*)(USTACKTOP) - PGSIZE, PGSIZE);
-	// memset((void*)(USTACKTOP) - PGSIZE, 0, PGSIZE);
+	region_alloc(e, (void*)(USTACKTOP) - PGSIZE, PGSIZE);
+	memset((void*)(USTACKTOP) - PGSIZE, 0, PGSIZE);
 
-	// lcr3(PADDR(kern_pgdir));
-
-	
+	lcr3(PADDR(kern_pgdir));
 }
 
 //
