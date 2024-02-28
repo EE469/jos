@@ -187,6 +187,7 @@ env_setup_vm(struct Env *e)
 
 	// LAB 3: Your code here.
 	e->env_pgdir = (pde_t*) page2kva(p);
+	memcpy(e->env_pgdir, kern_pgdir, PGSIZE);
 	p->pp_ref++;
 
 	// UVPT maps the env's own page table read-only.
@@ -291,10 +292,11 @@ region_alloc(struct Env *e, void *va, size_t len)
 		if (new_page == NULL) {
 			panic("region_alloc: page alloc fail");
 		}
-		int pg_insert = page_insert(e->env_pgdir, new_page, (void*) (lower_bound + i * PGSIZE), PTE_W | PTE_U);
-		if (pg_insert != 0) {
-			panic("region_alloc: page insert failed");
-		}
+		// int pg_insert = 
+		page_insert(e->env_pgdir, new_page, (void*) (lower_bound + i * PGSIZE), PTE_W | PTE_U);
+		// if (pg_insert != 0) {
+		// 	panic("region_alloc: page insert failed");
+		// }
 	}
 }
 
@@ -364,7 +366,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	for (; ph < end_ph; ph++) {
 		if (ph->p_type != ELF_PROG_LOAD) {
 			region_alloc(e, (void *) ph->p_va, ph->p_memsz);
-			memset((void*) end_ph->p_va, 0, ph->p_memsz);
+			memset((void*) ph->p_va, 0, ph->p_memsz);
 			memcpy((void*) ph->p_va, (void*) (binary + ph->p_offset), ph->p_filesz);
 		}
 	}
@@ -372,8 +374,8 @@ load_icode(struct Env *e, uint8_t *binary)
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 	// LAB 3: Your code here.
-	region_alloc(e, (void*)(USTACKTOP - PGSIZE), PGSIZE);
-	memset((void*)(USTACKTOP - PGSIZE), 0, PGSIZE);
+	region_alloc(e, (void*)(USTACKTOP) - PGSIZE, PGSIZE);
+	memset((void*)(USTACKTOP) - PGSIZE, 0, PGSIZE);
 
 	lcr3(PADDR(kern_pgdir));
 }
@@ -389,9 +391,10 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
-	struct Env* e = NULL;
-	load_icode(e, binary);
-	e->env_type = type;
+	struct Env* new_env = NULL;
+	env_alloc(&new_env, 0);
+	load_icode(new_env, binary);
+	new_env->env_type = type;
 }
 
 //
@@ -509,14 +512,14 @@ env_run(struct Env *e)
 
 	// LAB 3: Your code here.
 
-	if (curenv != NULL) {
+	if (curenv != NULL && curenv->env_status == ENV_RUNNING) {
 		curenv->env_status = ENV_RUNNABLE;
 	}
 	curenv = e;
 	curenv->env_runs++;
 	curenv->env_status = ENV_RUNNING;
 	lcr3(PADDR(curenv->env_pgdir));
-	env_pop_tf(&curenv->env_tf);
+	env_pop_tf(&(curenv->env_tf));
 
 	// panic("env_run not yet implemented");
 }

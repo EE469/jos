@@ -295,13 +295,6 @@ page_init(void)
 	pages[0].pp_ref = 1;
 	pages[0].pp_link = NULL;
 
-	// for (i = IOPHYSMEM; i < EXTPHYSMEM; i = i + PGSIZE) {
-	// 	struct PageInfo * page = pa2page(i);
-	// 	page->pp_ref = 1;
-	// 	page->pp_link = NULL;
-	// }
-
-	//static char* nextfree;
 	char * nextfree = boot_alloc(0);
 	for (i = npages_basemem; i < PGNUM(PADDR(nextfree)); i++) {
 		pages->pp_ref = 1;
