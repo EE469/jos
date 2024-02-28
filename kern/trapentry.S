@@ -47,17 +47,6 @@
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 
-// HINT 1 : TRAPHANDLER_NOEC(t_divide, T_DIVIDE);
-//          Do something like this if there is no error code for the trap
-// HINT 2 : TRAPHANDLER(t_dblflt, T_DBLFLT);
-//          Do something like this if the trap includes an error code..
-// HINT 3 : READ Intel's manual to check if the trap includes an error code
-//          or not...
-
-/*
- * Lab 3: Your code here for _alltraps
- */
-
 TRAPHANDLER_NOEC(t_divide, T_DIVIDE);
 TRAPHANDLER_NOEC(t_debug, T_DEBUG);
 TRAPHANDLER_NOEC(t_nmi, T_NMI);
@@ -81,6 +70,17 @@ TRAPHANDLER_NOEC(t_simderr, T_SIMDERR);
 // Unsure about syscall and default
 TRAPHANDLER_NOEC(t_syscall, T_SYSCALL);
 TRAPHANDLER_NOEC(t_default, T_DEFAULT);
+
+// HINT 1 : TRAPHANDLER_NOEC(t_divide, T_DIVIDE);
+//          Do something like this if there is no error code for the trap
+// HINT 2 : TRAPHANDLER(t_dblflt, T_DBLFLT);
+//          Do something like this if the trap includes an error code..
+// HINT 3 : READ Intel's manual to check if the trap includes an error code
+//          or not...
+
+/*
+ * Lab 3: Your code here for _alltraps
+ */
 
 _alltraps:
 	pushl %ds
