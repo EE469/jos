@@ -269,6 +269,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 3: Your code here.
 	if ((tf->tf_cs & 0x3) == 0) {
+		print_trapframe(tf);
 		panic("page_fault_handler: page fault at %x", fault_va);
 	}
 

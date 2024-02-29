@@ -404,6 +404,7 @@ env_create(uint8_t *binary, enum EnvType type)
 	env_alloc(&new_env, 0);
 	load_icode(new_env, binary);
 	new_env->env_type = type;
+	new_env->env_parent_id = 0;
 }
 
 //
