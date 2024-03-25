@@ -1,0 +1,6 @@
+1. Using separate handlers for different types of interrupts helps us tell apart the events causing these interrupts and respond to them in the right way
+
+2. No, When the softint code tries to use int $14, it's working under user privileges (DPL 3), 
+but the interrupt handler it attempts to call is set for kernel privileges only (DPL 0) in the Interrupt Descriptor Table (IDT). 
+Therefore, the attempt to execute int $14 triggers a general protection fault instead, because the code lacks the necessary permissions for this operation.
+If trap 14 were to be triggered it would result in unexpected behavior and potentially memory violations.

@@ -1,0 +1,76 @@
+5.a 
+PDE 956: Addr: 0xef000000 - UPAGES
+PDE 957: Addr: 0xef400000 - UVPT
+PDE 959: Addr: 0xefc00000 - MMIOLIM
+PDE 960: Addr: 0xf0000000 - KERNBASE
+EVERY THING ELSE IS ABOVE KERNBASE 
+PDE 961: Addr: 0xf0400000
+PDE 962: Addr: 0xf0800000
+PDE 963: Addr: 0xf0c00000
+PDE 964: Addr: 0xf1000000
+PDE 965: Addr: 0xf1400000
+PDE 966: Addr: 0xf1800000
+PDE 967: Addr: 0xf1c00000
+PDE 968: Addr: 0xf2000000
+PDE 969: Addr: 0xf2400000
+PDE 970: Addr: 0xf2800000
+PDE 971: Addr: 0xf2c00000
+PDE 972: Addr: 0xf3000000
+PDE 973: Addr: 0xf3400000
+PDE 974: Addr: 0xf3800000
+PDE 975: Addr: 0xf3c00000
+PDE 976: Addr: 0xf4000000
+PDE 977: Addr: 0xf4400000
+PDE 978: Addr: 0xf4800000
+PDE 979: Addr: 0xf4c00000
+PDE 980: Addr: 0xf5000000
+PDE 981: Addr: 0xf5400000
+PDE 982: Addr: 0xf5800000
+PDE 983: Addr: 0xf5c00000
+PDE 984: Addr: 0xf6000000
+PDE 985: Addr: 0xf6400000
+PDE 986: Addr: 0xf6800000
+PDE 987: Addr: 0xf6c00000
+PDE 988: Addr: 0xf7000000
+PDE 989: Addr: 0xf7400000
+PDE 990: Addr: 0xf7800000
+PDE 991: Addr: 0xf7c00000
+PDE 992: Addr: 0xf8000000
+PDE 993: Addr: 0xf8400000
+PDE 994: Addr: 0xf8800000
+PDE 995: Addr: 0xf8c00000
+PDE 996: Addr: 0xf9000000
+PDE 997: Addr: 0xf9400000
+PDE 998: Addr: 0xf9800000
+PDE 999: Addr: 0xf9c00000
+PDE 1000: Addr: 0xfa000000
+PDE 1001: Addr: 0xfa400000
+PDE 1002: Addr: 0xfa800000
+PDE 1003: Addr: 0xfac00000
+PDE 1004: Addr: 0xfb000000
+PDE 1005: Addr: 0xfb400000
+PDE 1006: Addr: 0xfb800000
+PDE 1007: Addr: 0xfbc00000
+PDE 1008: Addr: 0xfc000000
+PDE 1009: Addr: 0xfc400000
+PDE 1010: Addr: 0xfc800000
+PDE 1011: Addr: 0xfcc00000
+PDE 1012: Addr: 0xfd000000
+PDE 1013: Addr: 0xfd400000
+PDE 1014: Addr: 0xfd800000
+PDE 1015: Addr: 0xfdc00000
+PDE 1016: Addr: 0xfe000000
+PDE 1017: Addr: 0xfe400000
+PDE 1018: Addr: 0xfe800000
+PDE 1019: Addr: 0xfec00000
+PDE 1020: Addr: 0xff000000
+PDE 1021: Addr: 0xff400000
+PDE 1022: Addr: 0xff800000
+PDE 1023: Addr: 0xffc00000
+5.b Each page has permission bits, which ensures that the memory that cannot be read or written to by the user is not accessed.
+
+5.c 2^32 = 4GB, but JOS does not use the entire memory subspace, it only uses 256MB, which was a desgin choice by the programmers
+
+5.d If we take the 2^32 memory subspace then we 4MB overhead, but in JOS if we take the 256MB memory subspace then we get (256MB/4KB) = 65536 pages, as each pagetable holds 1024 entries and has a size of 4KB. 65536 / 1024 = 64 pagetables. So the overhead is (1 page directory + 64 pagetables) * 4KB = 260KB
+
+5.e We use assembly to continue executing at low EIP between when we enable paging and when we begin running at an EIP above KERNBASE. This is beacuase the C code is above KERNBASE, and we need to do the paging of it before accessing it.
