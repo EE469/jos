@@ -224,14 +224,10 @@ mem_init(void)
 	// we just set up the mapping aKERNBASnyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-<<<<<<< HEAD
 
 	// Initialize the SMP-related parts of the memory map
 	mem_init_mp();
 
-=======
-	boot_map_region(kern_pgdir,KERNBASE,-KERNBASE,0,PTE_W | PTE_P);
->>>>>>> lab3
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -333,6 +329,8 @@ page_init(void)
 	
 	pages[0].pp_ref = 1;
 	pages[0].pp_link = NULL;
+	pages[PGNUM(MPENTRY_PADDR)].pp_ref = 1;
+	pages[PGNUM(MPENTRY_PADDR)].pp_link = NULL;
 
 	char * nextfree = boot_alloc(0);
 	for (i = npages_basemem; i < PGNUM(PADDR(nextfree)); i++) {
@@ -474,7 +472,6 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	for (int i =0; i< size; i = i + PGSIZE) {
 		pte_t * pte = pgdir_walk(pgdir,(const void *  )(va + i),1);
 		*pte = PTE_ADDR(pa + i) | perm | PTE_P;
-
 	} 
 }
 
@@ -576,11 +573,6 @@ page_remove(pde_t *pgdir, void *va)
 	*pte = 0;
 	page_decref(page);
 	tlb_invalidate(pgdir,va);
-
-	
-	
-
-
 }
 
 //
@@ -627,7 +619,12 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	if (base + ROUNDUP(size, PGSIZE) > MMIOLIM) {
+		panic("mmio_map_region: Exceeding MMIOLIM");
+	}
+	boot_map_region(kern_pgdir, base, ROUNDUP(size, PGSIZE), pa, PTE_PCD | PTE_PWT | PTE_W);
+	base += ROUNDUP(size, PGSIZE);
+	return (void*) (base - ROUNDUP(size, PGSIZE));
 }
 
 static uintptr_t user_mem_check_addr;
