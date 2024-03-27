@@ -224,7 +224,7 @@ mem_init(void)
 	// we just set up the mapping aKERNBASnyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-
+	boot_map_region(kern_pgdir, KERNBASE, -KERNBASE, 0, PTE_P | PTE_W);
 	// Initialize the SMP-related parts of the memory map
 	mem_init_mp();
 
@@ -252,11 +252,6 @@ mem_init(void)
 	// Some more checks, only possible after kern_pgdir is installed.
 	check_page_installed_pgdir();
 
-	for (int i = 0;i < 1024;i++) {
-		if (kern_pgdir[i] & PTE_P) {
-			cprintf("PDE %d: Addr: 0x%x\n", i, i << 22, kern_pgdir[i] & 0xFFF);
-		}
-	}
 }
 
 // Modify mappings in kern_pgdir to support SMP
@@ -281,6 +276,10 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+	 for (int i =0;i<NCPU;i++) {
+        int32_t kstacktop_i = KSTACKTOP - i  * (KSTKSIZE + KSTKGAP);
+        boot_map_region(kern_pgdir, kstacktop_i - KSTKSIZE, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
+    }
 
 }
 
@@ -299,51 +298,63 @@ mem_init_mp(void)
 void
 page_init(void)
 {
-	// LAB 4:
-	// Change your code to mark the physical page at MPENTRY_PADDR
-	// as in use
+    // LAB 4:
+    // Change your code to mark the physical page at MPENTRY_PADDR
+    // as in use
 
-	// The example code here marks all physical pages as free.
-	// However this is not truly the case.  What memory is free?
-	//  1) Mark physical page 0 as in use.
-	//     This way we preserve the real-mode IDT and BIOS structures
-	//     in case we ever need them.  (Currently we don't, but...)
-	//  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
-	//     is free.
-	//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
-	//     never be allocated.
-	//  4) Then extended memory [EXTPHYSMEM, ...).
-	//     Some of it is in use, some is free. Where is the kernel
-	//     in physical memory?  Which pages are already in use for
-	//     page tables and other data structures?
-	//
-	// Change the code to reflect this.
-	// NB: DO NOT actually touch the physical memory corresponding to
-	// free pages!
-	size_t i;
-	for (i = 0; i < npages_basemem; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = NULL;
-		page_free_list = &pages[i];
-	}
-	
-	pages[0].pp_ref = 1;
-	pages[0].pp_link = NULL;
-	pages[PGNUM(MPENTRY_PADDR)].pp_ref = 1;
-	pages[PGNUM(MPENTRY_PADDR)].pp_link = NULL;
 
-	char * nextfree = boot_alloc(0);
-	for (i = npages_basemem; i < PGNUM(PADDR(nextfree)); i++) {
-		pages->pp_ref = 1;
-		pages->pp_link = NULL;
-	}
-	for (int i = PGNUM(PADDR(nextfree)); i < npages;i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
-		
-	}
+    // The example code here marks all physical pages as free.
+    // However this is not truly the case.  What memory is free?
+    //  1) Mark physical page 0 as in use.
+    //     This way we preserve the real-mode IDT and BIOS structures
+    //     in case we ever need them.  (Currently we don't, but...)
+    //  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
+    //     is free.
+    //  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
+    //     never be allocated.
+    //  4) Then extended memory [EXTPHYSMEM, ...).
+    //     Some of it is in use, some is free. Where is the kernel
+    //     in physical memory?  Which pages are already in use for
+    //     page tables and other data structures?
+    //
+    // Change the code to reflect this.
+    // NB: DO NOT actually touch the physical memory corresponding to
+    // free pages!
+    size_t i;
+    for (i = 0; i < npages_basemem; i++) {
+        if (i != 0 && i != PGNUM(MPENTRY_PADDR)) {
+            pages[i].pp_ref = 0;
+            pages[i].pp_link = NULL;
+            page_free_list = &pages[i];
+        }
+
+
+    }
+   
+    pages[0].pp_ref = 1;
+    pages[0].pp_link = NULL;
+    pages[PGNUM(MPENTRY_PADDR)].pp_ref = 1;
+    pages[PGNUM(MPENTRY_PADDR)].pp_link = NULL;
+
+
+   
+    for (i = PGNUM(IOPHYSMEM); i < PGNUM(EXTPHYSMEM); i++) {
+        pages[i].pp_ref = 1;
+        pages[i].pp_link = NULL;
+    }
+    char * nextfree = boot_alloc(0);
+    for (i = PGNUM(EXTPHYSMEM); i < PGNUM(PADDR(nextfree)); i++) {
+        pages[i].pp_ref = 1;
+        pages[i].pp_link = NULL;
+    }
+    for (int i = PGNUM(PADDR(nextfree)); i < npages;i++) {
+        pages[i].pp_ref = 0;
+        pages[i].pp_link = page_free_list;
+        page_free_list = &pages[i];
+       
+   }
 }
+
 
 //
 // Allocates a physical page.  If (alloc_flags & ALLOC_ZERO), fills the entire
