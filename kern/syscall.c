@@ -278,6 +278,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		case SYS_cgetc: res = sys_cgetc();
 		case SYS_getenvid: res = sys_getenvid();
 		case SYS_cputs: res = 0; sys_cputs((const char*) a1, (size_t) a2);
+		case SYS_yield: res = 0; sys_yield();
 		default: res =  -E_INVAL;
 	}
 	return res;
