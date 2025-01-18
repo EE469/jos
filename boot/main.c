@@ -83,7 +83,7 @@ readseg(uint32_t pa, uint32_t count, uint32_t offset)
 
 	// If this is too slow, we could read lots of sectors at a time.
 	// We'd write more to memory than asked, but it doesn't matter --
-	// we load in increasing order.
+	// we load in increasing order. 
 	while (pa < end_pa) {
 		// Since we haven't enabled paging yet and we're using
 		// an identity segment mapping (see boot.S), we can

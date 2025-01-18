@@ -28,9 +28,16 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "hidden", "Run hidden test cases", exec_hidden_cases},
+	{ "show", "show funny art", mon_show},
 };
 
 /***** Implementations of basic kernel monitor commands *****/
+int mon_show(int argc, char **argv, struct Trapframe *tf)
+{
+	show_art();
+	return 0;
+}
+
 
 int
 mon_help(int argc, char **argv, struct Trapframe *tf)
