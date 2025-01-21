@@ -28,9 +28,22 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "hidden", "Run hidden test cases", exec_hidden_cases},
+	{ "show", "print a beautiful ASCII Art", show},
 };
 
 /***** Implementations of basic kernel monitor commands *****/
+
+int
+show(int argc, char **argv, struct Trapframe *tf)
+{
+	cprintf("\033[31m   ~~~~ ____   \033[0m");
+	cprintf("\033[35m|~~~~~~~~~~~~~|\033[0m\n");
+	cprintf("\033[32m  Y_,___|[]|   | Go Boilers! |\033[0m\n");
+	cprintf("\033[33m {|_|_|_|PU|_,_|_____________|\033[0m\n");
+	cprintf("\033[34m//oo---OO=OO\033[0m");
+	cprintf("\033[36m     OOO     OOO\033[0m\n");
+	return 0;
+}
 
 int
 mon_help(int argc, char **argv, struct Trapframe *tf)
