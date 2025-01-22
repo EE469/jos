@@ -29,6 +29,7 @@ static struct Command commands[] = {
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "hidden", "Run hidden test cases", exec_hidden_cases},
 	{ "show", "show funny art", mon_show},
+	{"backtrace", "print backtrace", mon_backtrace}
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -68,10 +69,32 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// LAB 1: Your code here.
-    // HINT 1: use read_ebp().
-    // HINT 2: print the current ebp on the first line (not current_ebp[0])
-	return 0;
+    uintptr_t ebp = read_ebp();
+    uintptr_t eip;
+    struct Eipdebuginfo info;
+
+    cprintf("Stack backtrace:\n");
+    while (ebp) {
+        eip = *((uintptr_t *)ebp + 1);
+        cprintf("  ebp %08x  eip %08x  args", ebp, eip);
+
+        for (int i = 2; i <= 6; i++) {
+            cprintf(" %08x", *((uintptr_t *)ebp + i));
+        }
+        cprintf("\n");
+
+        if (debuginfo_eip(eip, &info) == 0) {
+            cprintf("         %s:%d: %.*s+%d\n",
+                    info.eip_file,
+                    info.eip_line,
+                    info.eip_fn_namelen,
+                    info.eip_fn_name,
+                    eip - info.eip_fn_addr);
+        }
+
+        ebp = *((uintptr_t *)ebp);
+    }
+    return 0;
 }
 
 int exec_hidden_cases(int argc, char **argv, struct Trapframe *tf) {
