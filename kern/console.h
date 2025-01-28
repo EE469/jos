@@ -19,7 +19,7 @@
 
 void cons_init(void);
 int cons_getc(void);
-
+void show_art(void);
 void kbd_intr(void); // irq 1
 void serial_intr(void); // irq 4
 

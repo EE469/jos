@@ -191,7 +191,7 @@ cga_putc(int c)
 		break;
 	}
 
-	// What is the purpose of this?
+	// What is the purpose of this? scrolls if necessary
 	if (crt_pos >= CRT_SIZE) {
 		int i;
 
@@ -473,4 +473,25 @@ iscons(int fdnum)
 {
 	// used by readline
 	return 1;
+}
+
+void show_art()
+{
+	const char *art[] = {
+        "\033[31m  #######   ",
+        " ##     ##  ",
+        "\033[32m##       ## ",
+        "\033[33m##       ## ",
+        "\033[34m ##     ##  ",
+        "\033[36m  #######   \033[37m"
+    };
+	for (int i = 0; i < 6; i++)
+	{
+		const char *line = art[i];
+	 	while (*line)
+	 	{
+	 		cputchar(*line++);
+	 	}
+	 	cputchar('\n');
+	}
 }
