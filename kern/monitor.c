@@ -29,9 +29,90 @@ static struct Command commands[] = {
     {"hidden", "Run hidden test cases", exec_hidden_cases},
     {"show", "print a beautiful ASCII Art", show},
     {"backtrace", "Print a backtrace of the stack", mon_backtrace},
+    {"showmappings",
+     "Display physical page mappings for a range of virtual addresses",
+     showmappings},
+    {"setperm", "Set, clear, or change the permissions of a mapping", setperm},
+    {"dumpmem", "Dump the contents of a range of memory", dumpmem},
 };
 
 /***** Implementations of basic kernel monitor commands *****/
+
+int showmappings(int argc, char **argv, struct Trapframe *tf) {
+  if (argc != 3) {
+    cprintf("Usage: showmappings <start_va> <end_va>\n");
+    return 0;
+  }
+
+  uintptr_t start_va = strtol(argv[1], NULL, 0);
+  uintptr_t end_va = strtol(argv[2], NULL, 0);
+
+  for (uintptr_t va = start_va; va <= end_va; va += PGSIZE) {
+    pte_t *pte = pgdir_walk(kern_pgdir, (void *)va, 0);
+    if (pte && (*pte & PTE_P)) {
+      cprintf("VA: 0x%08x -> PA: 0x%08x, Permissions: %c%c%c\n", va,
+              PTE_ADDR(*pte), (*pte & PTE_U) ? 'U' : '-',
+              (*pte & PTE_W) ? 'W' : '-', (*pte & PTE_P) ? 'P' : '-');
+    } else {
+      cprintf("VA: 0x%08x -> No mapping\n", va);
+    }
+  }
+  return 0;
+}
+
+int setperm(int argc, char **argv, struct Trapframe *tf) {
+  if (argc != 4) {
+    cprintf("Usage: setperm <va> <perm> <set|clear>\n");
+    return 0;
+  }
+
+  uintptr_t va = strtol(argv[1], NULL, 0);
+  int perm = strtol(argv[2], NULL, 0);
+  char *action = argv[3];
+
+  pte_t *pte = pgdir_walk(kern_pgdir, (void *)va, 0);
+  if (!pte || !(*pte & PTE_P)) {
+    cprintf("No mapping for VA: 0x%08x\n", va);
+    return 0;
+  }
+
+  if (strcmp(action, "set") == 0) {
+    *pte |= perm;
+  } else if (strcmp(action, "clear") == 0) {
+    *pte &= ~perm;
+  } else {
+    cprintf("Invalid action: %s\n", action);
+    return 0;
+  }
+
+  tlb_invalidate(kern_pgdir, (void *)va);
+  cprintf("Permissions updated for VA: 0x%08x\n", va);
+  return 0;
+}
+
+int dumpmem(int argc, char **argv, struct Trapframe *tf) {
+  if (argc != 4) {
+    cprintf("Usage: dumpmem <start_addr> <end_addr> <virt|phys>\n");
+    return 0;
+  }
+
+  uintptr_t start_addr = strtol(argv[1], NULL, 0);
+  uintptr_t end_addr = strtol(argv[2], NULL, 0);
+  char *type = argv[3];
+
+  for (uintptr_t addr = start_addr; addr <= end_addr; addr++) {
+    if (strcmp(type, "virt") == 0) {
+      cprintf("VA: 0x%08x -> Data: 0x%02x\n", addr, *(uint8_t *)addr);
+    } else if (strcmp(type, "phys") == 0) {
+      uintptr_t va = (uintptr_t)KADDR(addr);
+      cprintf("PA: 0x%08x -> Data: 0x%02x\n", addr, *(uint8_t *)va);
+    } else {
+      cprintf("Invalid type: %s\n", type);
+      return 0;
+    }
+  }
+  return 0;
+}
 
 int show(int argc, char **argv, struct Trapframe *tf) {
   cprintf("\033[31m   ~~~~ ____   \033[0m");

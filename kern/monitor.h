@@ -1,7 +1,7 @@
 #ifndef JOS_KERN_MONITOR_H
 #define JOS_KERN_MONITOR_H
 #ifndef JOS_KERNEL
-# error "This is a JOS kernel header; user programs should not #include it"
+#error "This is a JOS kernel header; user programs should not #include it"
 #endif
 
 struct Trapframe;
@@ -17,5 +17,8 @@ int mon_kerninfo(int argc, char **argv, struct Trapframe *tf);
 int mon_backtrace(int argc, char **argv, struct Trapframe *tf);
 int exec_hidden_cases(int argc, char **argv, struct Trapframe *tf);
 int show(int argc, char **argv, struct Trapframe *tf);
+int showmappings(int argc, char **argv, struct Trapframe *tf);
+int setperm(int argc, char **argv, struct Trapframe *tf);
+int dumpmem(int argc, char **argv, struct Trapframe *tf);
 
-#endif	// !JOS_KERN_MONITOR_H
+#endif // !JOS_KERN_MONITOR_H
