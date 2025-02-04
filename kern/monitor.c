@@ -28,6 +28,7 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "hidden", "Run hidden test cases", exec_hidden_cases},
+	{ "backtrace", "test backtrace function", mon_backtrace},
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -58,12 +59,45 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
-int
-mon_backtrace(int argc, char **argv, struct Trapframe *tf)
+int mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// LAB 1: Your code here.
+    // LAB 1: Your code here.
     // HINT 1: use read_ebp().
     // HINT 2: print the current ebp on the first line (not current_ebp[0])
+	cprintf("Stack backtrace:\n");
+
+	//LLMPROMPT: in GNU x86 assembly, i need to trace addresses of ebp and esp which 
+	//are stack pointers, what types and typecasts should I use to track the stack values.
+
+    // Convert ebp into a pointer to 32-bit ints which makes it easier to step through.
+    uint32_t *ebp = (uint32_t *) read_ebp();
+
+    while (ebp != 0) {//entry.S says 0 is last ebp range of [0, 4MB]
+        uint32_t eip        = ebp[1];
+        uint32_t *ebp_caller = (uint32_t *) ebp[0];
+
+        cprintf("  ebp %08x  eip %08x  args", (uint32_t) ebp, eip);
+
+        //print five args like manual
+        for (int i = 0; i < 5; i++) {
+            cprintf(" %08x", ebp[2 + i]);
+        }
+        cprintf("\n");
+		struct Eipdebuginfo extra_info;
+		int print_extra = debuginfo_eip(eip ,&extra_info);
+		if (print_extra != -1 ){
+			const char  *filename = extra_info.eip_file;
+			int line_num = extra_info.eip_line;
+			const char *fun_name = extra_info.eip_fn_name;
+			int fun_len = extra_info.eip_fn_namelen;
+			int offset = eip - extra_info.eip_fn_addr;
+			cprintf("%s:%d: %.*s+%d\n", filename, line_num, fun_len, fun_name, offset);
+		}
+
+
+        //move 'ebp' up one frame
+        ebp = ebp_caller;
+    }
 	return 0;
 }
 
