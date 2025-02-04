@@ -1,0 +1,48 @@
+a. What entries (rows) in the page directory have been filled in at this point? 
+  What addresses do they map and where do they point? In other words, fill out this table as much as possible:
+
++-----+----------------------+---------------------------------------+
+|Entry| Base Virtual Address |  Points to (logically)                |
++=====+======================+=======================================+
+|1023 | 0xFFC00000           | Page table for top 4MB of phys memory |
++-----+----------------------+---------------------------------------+
+|1022 | 0xFF800000           | Page table for next 4MB of phys memory|
++-----+----------------------+---------------------------------------+
+|...  | ...                  | ...                                   |
++-----+----------------------+---------------------------------------+
+|2    | 0x00800000           | Page table for 8MB to 12MB of phys mem|
++-----+----------------------+---------------------------------------+
+|1    | 0x00400000           | Page table for 4MB to 8MB of phys mem |
++-----+----------------------+---------------------------------------+
+|0    | 0x00000000           | Page table for 0 to 4MB of phys mem   |
++-----+----------------------+---------------------------------------+
+
+
+b. We have placed the kernel and user environment in the same address space. 
+Why will user programs not be able to read or write the kernel’s memory? What specific mechanisms protect the kernel memory?
+
+User programs will not be able to read or write the kernel’s memory because of the permissions set in the page tables. 
+Specifically, the kernel memory is mapped with permissions that do not include user access (PTE_U is not set). 
+The x86 MMU checks these permissions and will raise a page fault if a user-mode program tries to access kernel memory.
+
+c. What is the maximum amount of physical memory that this operating system can support? Why?
+
+The maximum amount of physical memory that this operating system can support is 4GB. 
+This is because the page directory and page tables use 32-bit addresses, which can address up to 2^32 bytes (4GB) of memory.
+
+d. How much space overhead is there for managing memory, if we actually had the maximum amount of physical memory? How is this overhead broken down?
+
+The space overhead for managing memory, if we had the maximum amount of physical memory (4GB), is:
+
+Page directory: 4KB (one page)
+Page tables: 4MB (1024 page tables, each 4KB)
+Total overhead: 4KB + 4MB = 4MB + 4KB
+
+e. Revisit the page table setup in kern/entry.S and kern/entrypgdir.c. 
+Immediately after we turn on paging, EIP is still a low number (a little over 1MB). At what point do we transition to running at an EIP above KERNBASE? 
+What makes it possible for us to continue executing at a low EIP between when we enable paging and when we begin running at an EIP above KERNBASE? Why is this transition necessary?
+
+The transition to running at an EIP above KERNBASE occurs in mem_init() when the kernel switches from the minimal entry page directory to the full kern_pgdir page table. 
+This is made possible by the fact that the initial page directory maps the first 4MB of physical memory to both virtual addresses starting at 0 and at KERNBASE. 
+This allows the kernel to continue executing at a low EIP immediately after enabling paging, and then transition to a higher EIP once the full page table is set up. 
+This transition is necessary to separate kernel and user address spaces and to take advantage of the full virtual address space for the kernel.
