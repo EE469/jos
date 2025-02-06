@@ -129,7 +129,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+	//panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -330,9 +330,10 @@ page_free(struct PageInfo *pp)
     if (pp->pp_ref != 0 || pp->pp_link != NULL) {
         panic("page_free: pp->pp_ref is nonzero or pp->pp_link is not NULL");
     }
+
     // Add the page back to the free list
     pp->pp_link = page_free_list;
-    page_free_list = pp;
+    page_free_list = pp; 
 }
 
 //
@@ -371,38 +372,8 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Calculate the page directory index (PDI) and page table index (PTI)
-    uintptr_t pd_index = PDX(va);
-    uintptr_t pt_index = PTX(va);
-
-    // Check if the page table entry (PTE) exists in the page directory
-    if (pgdir[pd_index] & PTE_P) {
-        // Page table exists, get the page table base address
-        pte_t *pt_base = (pte_t *) KADDR(PTE_ADDR(pgdir[pd_index]));
-        return &pt_base[pt_index];
-    }
-
-    // Page table does not exist
-    if (!create) {
-        return NULL;
-    }
-
-    // Allocate a new page table page
-    struct PageInfo *new_page = page_alloc(ALLOC_ZERO);
-    if (!new_page) {
-        return NULL;
-    }
-
-    // Increment the reference count and clear the page
-    new_page->pp_ref++;
-    memset(page2kva(new_page), 0, PGSIZE);
-
-    // Update the page directory
-    pgdir[pd_index] = page2pa(new_page) | PTE_P | PTE_W | PTE_U;
-
-    // Return a pointer to the PTE
-    pte_t *pt_base = (pte_t *) KADDR(PTE_ADDR(pgdir[pd_index]));
-    return &pt_base[pt_index];
+	// Fill this function in
+	return NULL;
 }
 
 //
@@ -419,19 +390,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
-	// Ensure size is a multiple of PGSIZE
-    size_t num_pages = size / PGSIZE;
-
-    for (size_t i = 0; i < num_pages; i++) {
-        // Get the PTE for the current virtual address
-        pte_t *pte = pgdir_walk(pgdir, (void *)(va + i * PGSIZE), 1);
-        if (!pte) {
-            panic("boot_map_region: pgdir_walk failed");
-        }
-
-        // Set the PTE to point to the corresponding physical address with the appropriate permissions
-        *pte = (pa + i * PGSIZE) | perm | PTE_P;
-    }
+	// Fill this function in
 }
 
 //
@@ -462,32 +421,8 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	// Get or create the page table entry (PTE) for va
-    pte_t *pte = pgdir_walk(pgdir, va, 1);
-    if (!pte) {
-        return -E_NO_MEM; // Page table couldn't be allocated
-    }
-
-    // If there is already a page mapped at va, remove it
-    if (*pte & PTE_P) {
-        if (PTE_ADDR(*pte) == page2pa(pp)) {
-            // If the same page is being re-inserted, no need to remove it
-            pp->pp_ref++;
-        } else {
-            page_remove(pgdir, va);
-        }
-    }
-
-    // Increment the reference count of pp
-    pp->pp_ref++;
-
-    // Set the PTE to point to the physical address of pp with the appropriate permissions
-    *pte = page2pa(pp) | perm | PTE_P;
-
-    // Invalidate the TLB entry for va
-    tlb_invalidate(pgdir, va);
-
-    return 0; // Success
+	// Fill this function in
+	return 0;
 }
 
 //
@@ -526,23 +461,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	// Look up the page table entry (PTE) for va
-    pte_t *pte = pgdir_walk(pgdir, va, 0);
-    if (!pte || !(*pte & PTE_P)) {
-        return; // No physical page at that address
-    }
-
-    // Get the physical page corresponding to the PTE
-    struct PageInfo *pp = pa2page(PTE_ADDR(*pte));
-
-    // Decrement the reference count of the physical page
-    page_decref(pp);
-
-    // Set the PTE to 0
-    *pte = 0;
-
-    // Invalidate the TLB entry for va
-    tlb_invalidate(pgdir, va);
+	// Fill this function in
 }
 
 //
