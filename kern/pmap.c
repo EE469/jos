@@ -106,6 +106,7 @@ boot_alloc(uint32_t n)
 	// LAB 2: Your code here.
 	char *ret_page = nextfree;
 	nextfree = ROUNDUP(nextfree + n, PGSIZE);
+	//panic if out of memory
 	if((uint32_t)nextfree > (KERNBASE + npages * PGSIZE))
 		panic("boot_alloc: out of memory");
 
@@ -267,7 +268,7 @@ page_init(void)
 	// free pages!
 	size_t i;
 
-	//Used LLM to help with below code
+	//LLM: Assign free pages and mark IO hole as in use
     // mark page 0 as in use
 	pages[0].pp_ref = 1;
 	pages[0].pp_link = NULL;
@@ -310,9 +311,7 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
-	//Used LLM to help with below code
 	struct PageInfo *page;
-
 	//return null if no free pages/memory
 	if (free_pages == NULL){
 		return NULL;
@@ -342,11 +341,12 @@ page_free(struct PageInfo *pp)
 	// pp->pp_link is not NULL.
 	// Check if pp->pp_ref is nonzero or pp->pp_link is not NULL
 
+	//panic if pp->pp_link is not NULL
 	if (pp->pp_link != NULL) {
 		panic("page_free: pp->pp_link is not NULL");
 	}
 
-	//make sure pp->pp_ref is 0
+	//continue if pp->pp_ref is zero
     if(pp->pp_ref == 0){
 		pp->pp_link = free_pages;
     	free_pages = pp; 
@@ -394,12 +394,13 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	//used LLM to help with below code
+	//LLM: What bits to enable and use PTE_ADDR
 	pte_t *pagetable;
 	struct PageInfo *npage;
-	uintptr_t idx = 0;
 	int page_dir_index;
 	int page_table_index;
+	uintptr_t idx = 0;
+	
 
 	page_dir_index = PDX(va);
 	idx = pgdir[page_dir_index];
@@ -407,15 +408,14 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	//check if index is in page table
 	if ((idx & PTE_P) == 0) {
 		//check if create is false
-		if (!create)
+		if (!create){
 			return NULL;
-		//allocate
+		}
 		npage = page_alloc(ALLOC_ZERO);
-		if (npage == NULL)
+		if (npage == NULL){
 			return NULL;
-
+		}
 		npage->pp_ref++;
-		//insert new page with flags into page table
 		pgdir[page_dir_index] = (int) page2pa(npage) | PTE_P | PTE_W | PTE_U;
 		idx = pgdir[page_dir_index];
 
@@ -441,7 +441,7 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-	//used LLM to help with code below
+	//LLM: how to use pgdir_walk
 	pte_t *page;
 	//check if size is a multiple of PGSIZE
 	assert (size % PGSIZE == 0);
@@ -453,9 +453,9 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 		//use permission bits perm|PTE_P for the entries
 		*page = pa | perm | PTE_P;
 
-		size -= PGSIZE;
-		va += PGSIZE;
-		pa += PGSIZE;
+		size = size - PGSIZE;
+		va = va + PGSIZE;
+		pa = pa + PGSIZE;
 	}
 }
 
@@ -488,22 +488,18 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
-	//used LLM to help with code below
+	//LLM: How to correctly use pgdir_walk and page2pa
 	pte_t *page;
 	page = pgdir_walk(pgdir, va, 1);
 	if (page == NULL){
-		//return -E_NO_MEM if page table couldn't be allocated
 		return -E_NO_MEM;
 	}
-
 	pp->pp_ref++;
 	if (*page & PTE_P){
 		page_remove(pgdir, va);
 	}
-
 	*page = page2pa(pp) | perm | PTE_P;
 
-	//return 0 on success
 	return 0;
 }
 
@@ -522,7 +518,6 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	//used LLM to help with code below
 	pte_t *page;
 	page = pgdir_walk(pgdir, va, 0);
 	//return null if there is no page mapped at va
@@ -557,7 +552,7 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
-	//Used LLM to help with code below
+	//LLM: How to use page_lookup, page_decref
 	pte_t *pagetable_entry;
 	struct PageInfo *page;
 	page = page_lookup(pgdir, va, &pagetable_entry);
