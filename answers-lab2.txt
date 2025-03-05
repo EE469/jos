@@ -1,0 +1,58 @@
+Questions:
+Exercise 3:
+
+x should have the type uintptr_t because it contains a virtual address.
+
+Exercise 5:
+
+A.
+    +------+----------------------+-----------------------------------------------+
+    |Entry | Base Virtual Address | Points to (logically)                        |
+    +======+======================+===============================================+
+    |1023  | 0xFFC00000           | Page table for top 4MB of phys memory       |
+    +------+----------------------+-----------------------------------------------+
+    |1022  | 0xFF800000           | Next-lower 4MB chunk of kernel high region   |
+    +------+----------------------+-----------------------------------------------+
+    |1021  | 0xFF400000           | Another 4MB chunk                            |
+    +------+----------------------+-----------------------------------------------+
+    | ...  | ...                  | Possibly more PDEs for higher memory         |
+    +------+----------------------+-----------------------------------------------+
+    | 963  | 0xF0C00000           | Kernel mapping for physical 12–16 MB         |
+    +------+----------------------+-----------------------------------------------+
+    | 962  | 0xF0800000           | Kernel mapping for physical 8–12 MB          |
+    +------+----------------------+-----------------------------------------------+
+    | 961  | 0xF0400000           | Kernel mapping for physical 4–8 MB           |
+    +------+----------------------+-----------------------------------------------+
+    | 960  | 0xF0000000           | Kernel mapping for physical 0–4 MB           |
+    +------+----------------------+-----------------------------------------------+
+    | ...  | ...                  |          Typically unused                    |
+    +------+----------------------+-----------------------------------------------+
+    |  3   | 0x00C00000           | Identity map for physical 12–16 MB           |
+    +------+----------------------+-----------------------------------------------+
+    |  2   | 0x00800000           | Identity map for physical 8–12 MB            |
+    +------+----------------------+-----------------------------------------------+
+    |  1   | 0x00400000           | Identity map for physical 4–8 MB             |
+    +------+----------------------+-----------------------------------------------+
+    |  0   | 0x00000000           | identity map for  physical 0-4 MB            |
+    +------+----------------------+-----------------------------------------------+
+
+B.  There exists a PTE_U (User) bit, this bit when set to 1 lets the user environment access the kernel memory.
+ In lab 2 we set that to 0 for any of the pages that have to do with the kernel addresses. This makes sure that the ring with the
+ kernel memory stays unchanged and secure.
+
+C.  (tried following memory map diagram inc/memlayout.h for calculating PG-SIZE and PT_SIZE) For the largest page size we set it will
+ be 4096b or 4kb. Then we have to consider a table size of 4mb. With the 4mb table size you need to account for the fact that this needs
+ to be put into the PageInfo struct which has a size of 8b. This means that we can only have 4mb/8b of memory for mappable pages.
+ Now that we have the memory for number of pages we need to account for the page size we found earlier for each entry leading to
+ (4mb/8b)*4kb which is about 2^31 bytes of memory total.
+
+D. from the memory layout from inc/memlayout.h and the last problem we know that 4mb/8b is the num of pages. Wer are only asked about the
+ management memory allocated so we already know we need 4mb to store the array of pages. WE also need 4kb for the directory of pages.
+ The last thing missing is the actual page tables that the directory will point to, in our Page table each page is given 4b for its PTE
+ meaning (4mb/8b)*4b which is 2mb.
+
+E.  Immediately after turning on paging EIP is low but then we jump to .relocated by setting cr3 to paging and getting the address in cr0.
+ When we jump to .relocated we are switching the EIP from low to high virtual addresses that are above kernbase. This transition is necessary
+ because the kernel expects to run at those high addresses. We also want the uder address space to be in the lower addresses so that it is 
+ protected from the kernel.
+	
