@@ -14,6 +14,7 @@
 #include <kern/hidden.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
+int exec_hidden_cases(int argc, char **argv, struct Trapframe *tf);
 
 int
 test(int argc, char **argv, struct Trapframe *tf)
