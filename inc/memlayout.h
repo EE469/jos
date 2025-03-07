@@ -17,7 +17,7 @@
 #define GD_UT     0x18     // user text
 #define GD_UD     0x20     // user data
 #define GD_TSS0   0x28     // Task segment selector for CPU 0
-
+#define KERNBASE 0xF0000000
 /*
  * Virtual memory map:                                Permissions
  *                                                    kernel/user

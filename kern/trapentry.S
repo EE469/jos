@@ -1,4 +1,3 @@
-/* See COPYRIGHT for copyright information. */
 
 #include <inc/mmu.h>
 #include <inc/memlayout.h>
@@ -57,5 +56,49 @@
 /*
  * Lab 3: Your code here for _alltraps
  */
+ 
 
 
+
+//TRAPHANDLER_NOEC for traps without error code
+// From 0-7 no error code requred
+	TRAPHANDLER_NOEC(T_DIVIDE_handler,  T_DIVIDE)    # #DE does not push error code
+TRAPHANDLER_NOEC(T_DEBUG_handler,   T_DEBUG)
+TRAPHANDLER_NOEC(T_NMI_handler,     T_NMI)
+TRAPHANDLER_NOEC(T_BRKPT_handler,   T_BRKPT)     # Breakpoint #3, no error code
+TRAPHANDLER_NOEC(T_OFLOW_handler,   T_OFLOW)
+TRAPHANDLER_NOEC(T_BOUND_handler,   T_BOUND)
+TRAPHANDLER_NOEC(T_ILLOP_handler,   T_ILLOP)
+TRAPHANDLER_NOEC(T_DEVICE_handler,  T_DEVICE)
+
+TRAPHANDLER(T_DBLFLT_handler,       T_DBLFLT)    # #DF always pushes error code
+TRAPHANDLER(T_TSS_handler,          T_TSS)       # #TS pushes error code
+TRAPHANDLER(T_SEGNP_handler,        T_SEGNP)     # #NP
+TRAPHANDLER(T_STACK_handler,        T_STACK)     # #SS
+TRAPHANDLER(T_GPFLT_handler,        T_GPFLT)     # #GP
+TRAPHANDLER(T_PGFLT_handler,        T_PGFLT)     # #PF
+
+TRAPHANDLER_NOEC(T_FPERR_handler,   T_FPERR)
+TRAPHANDLER_NOEC(T_MCHK_handler,    T_MCHK)
+TRAPHANDLER_NOEC(T_SIMDERR_handler, T_SIMDERR)
+
+# For system call vector=48 (T_SYSCALL). CPU does NOT push error code, so:
+TRAPHANDLER_NOEC(T_SYSCALL_handler, T_SYSCALL)
+
+# If you have a default catchall (vector=500), do TRAPHANDLER_NOEC or TRAPHANDLER, depending on if you treat it as error-code or not
+TRAPHANDLER_NOEC(T_DEFAULT_handler, T_DEFAULT)
+
+#
+# 2) Common entry point: _alltraps
+#
+
+_alltraps:
+	pushl %ds
+	pushl %es
+	pushal
+	pushl $GD_KD
+	popl %ds
+	pushl $GD_KD
+	popl %es
+	pushl %esp
+	call trap
