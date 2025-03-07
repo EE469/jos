@@ -54,8 +54,35 @@
 // HINT 3 : READ Intel's manual to check if the trap includes an error code
 //          or not...
 
+TRAPHANDLER_NOEC(th_divide, T_DIVIDE)
+TRAPHANDLER_NOEC(th_debug, T_DEBUG)
+TRAPHANDLER_NOEC(th_nmi, T_NMI)
+TRAPHANDLER_NOEC(th_brkpt, T_BRKPT)
+TRAPHANDLER_NOEC(th_oflow, T_OFLOW)
+TRAPHANDLER_NOEC(th_bound, T_BOUND)
+TRAPHANDLER_NOEC(th_illop, T_ILLOP)
+TRAPHANDLER_NOEC(th_device, T_DEVICE)
+TRAPHANDLER(th_dblflt, T_DBLFLT)
+TRAPHANDLER(th_tss, T_TSS)
+TRAPHANDLER(th_segnp, T_SEGNP)
+TRAPHANDLER(th_stack, T_STACK)
+TRAPHANDLER(th_gpflt, T_GPFLT)
+TRAPHANDLER(th_pgflt, T_PGFLT)
+TRAPHANDLER_NOEC(th_fperr, T_FPERR)
+TRAPHANDLER(th_align, T_ALIGN)
+TRAPHANDLER_NOEC(th_mchk, T_MCHK)
+TRAPHANDLER_NOEC(th_simderr, T_SIMDERR)
+TRAPHANDLER_NOEC(th_syscall, T_SYSCALL)
+
 /*
  * Lab 3: Your code here for _alltraps
  */
-
-
+ _alltraps:
+	pushl %ds
+	pushl %es
+	pushal
+	movw $GD_KD, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	pushl %esp
+	call trap
