@@ -1,0 +1,9 @@
+Q1:
+
+The reason you need different handlers is because once you encounter any type of exception it will have to be dealt with in it's own unique way, therefore you need an exception handler for each unique exception. If they were 
+all sent to the same hanlder then we couldnt tell the difference between which exception actually occurred.
+
+Q2:
+
+We did not have to mess with the user/softint program, it worked on its own. if you execute int 14 when you are in user mode a protection fault happens because user programs cant produce interrupt num 14. This is because the T_PGFLT bit is not set. If the kernel allowed this, then everything would be broken in the environment and the progam would die.
+
