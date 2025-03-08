@@ -58,31 +58,6 @@ static const char *trapname(int trapno)
     return "(unknown trap)";
 }
 
-
-// XYZ: write a function declaration here...
-// e.g., void t_divide();
-// void handler_0();
-// void handler_1();
-// extern void handler_2();
-// extern void handler_3();
-// extern void handler_4();
-// extern void handler_5();
-// extern void handler_6();
-// extern void handler_7();
-// extern void handler_8();
-// extern void handler_9();
-// extern void handler_10();
-// extern void handler_11();
-// extern void handler_12();
-// extern void handler_13();
-// extern void handler_14();  // 🚨 Page Fault Handler
-// extern void handler_15();
-// extern void handler_16();
-// extern void handler_17();
-// extern void handler_18();
-// extern void handler_19();
-// extern void handler_48(); 
-
 void
 trap_init(void)
 {
@@ -122,8 +97,7 @@ trap_init(void)
     SETGATE(idt[T_DEBUG],   0, GD_KT, T_DEBUG_handler,   0);
     SETGATE(idt[T_NMI],     0, GD_KT, T_NMI_handler,     0);
 
-    // T_BRKPT => user can do int3 => dpl=3
-    SETGATE(idt[T_BRKPT],   0, GD_KT, T_BRKPT_handler,   3);
+    SETGATE(idt[T_BRKPT],   1, GD_KT, T_BRKPT_handler,   3);
 
     SETGATE(idt[T_OFLOW],   0, GD_KT, T_OFLOW_handler,   0);
     SETGATE(idt[T_BOUND],   0, GD_KT, T_BOUND_handler,   0);
@@ -141,13 +115,10 @@ trap_init(void)
     SETGATE(idt[T_MCHK],    0, GD_KT, T_MCHK_handler,    0);
     SETGATE(idt[T_SIMDERR], 0, GD_KT, T_SIMDERR_handler, 0);
 
-    // System call => user can do int $0x30 or $0x48 => dpl=3
     SETGATE(idt[T_SYSCALL], 1, GD_KT, T_SYSCALL_handler, 3);
 
     // If you want a default catchall vector=500, do likewise
-    SETGATE(idt[T_DEFAULT], 0, GD_KT, T_DEFAULT_handler, 0);
-
-    // Then load the IDT in trap_init_percpu() or here:
+   
     trap_init_percpu();
 	
 }

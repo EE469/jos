@@ -219,11 +219,7 @@ mem_init(void)
 	// LAB 3: Your code here.
 	//boot_map_region(kern_pgdir, UENVS, NENV * sizeof(struct Env), PADDR(envs), PTE_U | PTE_P);
 	//boot_map_region(kern_pgdir, UENVS, sizeof(struct Env) * NENV,PADDR(envs), PTE_U);
-	boot_map_region(kern_pgdir,
-		UENVS,
-		PTSIZE,
-		PADDR(envs),
-		PTE_U);
+	boot_map_region(kern_pgdir,UENVS,PTSIZE,PADDR(envs),PTE_U);
 	//boot_map_region(kern_pgdir, (uintptr_t) envs, NENV * sizeof(struct Env), PADDR(envs), PTE_W | PTE_P);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -252,11 +248,7 @@ mem_init(void)
 	//size_t size = ROUNDUP(0xFFFFFFFF - KERNBASE + 1, PGSIZE);
 	//boot_map_region(kern_pgdir, KERNBASE, size, 0, PTE_W | PTE_P);
 	//boot_map_region(kern_pgdir,KERNBASE,256*(1<<20),0, PTE_W|PTE_P);
-	boot_map_region(kern_pgdir, 
-		KERNBASE, 
-		-KERNBASE, 
-		0, 
-		PTE_W);
+	boot_map_region(kern_pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
