@@ -75,8 +75,6 @@ duppage(envid_t envid, unsigned pn)
 	} else sys_page_map(0, addr, envid, addr, PTE_U|PTE_P);
 	// cprintf("2\n");
 	return 0;
-
-	return 0;
 }
 
 //
