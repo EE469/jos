@@ -29,7 +29,22 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+	//LLM: How to correctly use NENV, ENVX, and envs for Round Robin
+    // Start searching from the next environment after the one this CPU was last running
+    int start = curenv ? ENVX(curenv->env_id) + 1 : 0;
+    //iterate through environments circularly
+    for (int i = 0; i < NENV; i++) {
+        idle = &envs[(start + i) % NENV];
+        if (idle->env_status == ENV_RUNNABLE) {
+			//switch to idle which is runnable
+            env_run(idle);
+        }
+    }
 
+    // If no runnable environments are found, check if the current environment is still running
+    if (curenv && curenv->env_status == ENV_RUNNING) {
+        env_run(curenv); // Continue running the current environment
+    }
 	// sched_halt never returns
 	sched_halt();
 }
