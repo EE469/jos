@@ -359,6 +359,7 @@ page_init(void)
         pages[i].pp_link = page_free_list;
         page_free_list = &pages[i];
     }
+	
 }
 
 //
@@ -686,7 +687,7 @@ mmio_map_region(physaddr_t pa, size_t size)
     }
     //map according to intstruction
 	//LLM: Correctly use boot_map_region
-    boot_map_region(kern_pgdir, base, size, pa, PTE_PCD | PTE_PWT);
+    boot_map_region(kern_pgdir, base, size, pa, PTE_PCD | PTE_PWT | PTE_W);
     // Save the current base address to return.
     uintptr_t mapped_base = base;
     //increment base
