@@ -273,7 +273,15 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+	uintptr_t kstacktop_i; 
 
+    //go through CPUs
+    for (int i = 0; i < NCPU; i++) {
+        //address kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP)
+        kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+        //map from [kstacktop_i - KSTKSIZE, kstacktop_i)
+        boot_map_region(kern_pgdir, kstacktop_i - KSTKSIZE, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W | PTE_P);
+    }
 }
 
 // --------------------------------------------------------------
@@ -318,28 +326,39 @@ page_init(void)
     // mark page 0 as in use
 	pages[0].pp_ref = 1;
 	pages[0].pp_link = NULL;
-	page_free_list = NULL;
 
-    // free the rest of base memory
+    // free the rest of base memory except MPENTRY_PADDR
 	for (i = 1; i < npages_basemem; i++) {
+		if (i == PGNUM(MPENTRY_PADDR)) {
+            continue;
+        }
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
 
+	// the IO hole [IOPHYSMEM, EXTPHYSMEM), must never be allocated.
+	for (i = PGNUM(IOPHYSMEM); i < PGNUM(EXTPHYSMEM); i++) {
+        pages[i].pp_ref = 1;
+        pages[i].pp_link = NULL;
+    }
+	
 	// mark the IO hole as in use
-	size_t io_hole_end = PGNUM(PADDR(boot_alloc(0)));
-	for (; i < io_hole_end; i++){
-		pages[i].pp_ref = 1;
-		pages[0].pp_link = NULL;
-	}
+	size_t next_page = PGNUM(PADDR(boot_alloc(0)));
+    for (i = PGNUM(EXTPHYSMEM); i < next_page; i++) {
+        pages[i].pp_ref = 1;
+        pages[i].pp_link = NULL;
+    }
 
-	// mark the rest of the pages as free
-	for (; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
-	}
+    // mark the rest of the pages as free excepts MPENTRY_PADDR
+    for (i = next_page; i < npages; i++) {
+		if( i == PGNUM(MPENTRY_PADDR)){
+			continue;
+		}
+        pages[i].pp_ref = 0;
+        pages[i].pp_link = page_free_list;
+        page_free_list = &pages[i];
+    }
 }
 
 //
@@ -658,7 +677,21 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	//size up using multiple of PGSIZE
+    size = ROUNDUP(size, PGSIZE);
+
+    //check overflow 
+    if (base + size > MMIOLIM) {
+        panic("mmio_map_region: MMIO region overflow");
+    }
+    //map according to intstruction
+	//LLM: Correctly use boot_map_region
+    boot_map_region(kern_pgdir, base, size, pa, PTE_PCD | PTE_PWT);
+    // Save the current base address to return.
+    uintptr_t mapped_base = base;
+    //increment base
+    base += size;
+    return (void *)mapped_base;
 }
 
 static uintptr_t user_mem_check_addr;
