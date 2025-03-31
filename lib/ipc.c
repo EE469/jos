@@ -23,8 +23,30 @@ int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
 	// LAB 4: Your code here.
-	panic("ipc_recv not implemented");
-	return 0;
+	// Call sys_ipc_recv with the appropriate value for pg
+    int r = sys_ipc_recv(pg);
+
+    // If the system call fails, store 0 in from_env_store and perm_store (if non-null)
+    if (r != 0) {
+        if (from_env_store) {
+            *from_env_store = 0;
+        }
+        if (perm_store) {
+            *perm_store = 0;
+        }
+        return r; // Return the error code
+    }
+
+    // On success, retrieve the IPC sender's envid and permissions from thisenv
+    if (from_env_store) {
+        *from_env_store = thisenv->env_ipc_from;
+    }
+    if (perm_store) {
+        *perm_store = thisenv->env_ipc_perm;
+    }
+
+    // Return the value sent by the sender
+    return thisenv->env_ipc_value;
 }
 
 // Send 'val' (and 'pg' with 'perm', if 'pg' is nonnull) to 'toenv'.
@@ -39,7 +61,27 @@ void
 ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
 	// LAB 4: Your code here.
-	panic("ipc_send not implemented");
+	void *srcva = (pg == NULL) ? (void *)UTOP : pg;
+
+    while (1) {
+        int r;
+
+        // Attempt to send the value and page
+        r = sys_ipc_try_send(to_env, val, srcva, perm);
+
+        // If the send succeeds, return
+        if (r == 0) {
+            return;
+        }
+
+        // If the target is not ready to receive, yield the CPU and try again
+        if (r == -E_IPC_NOT_RECV) {
+            sys_yield();
+        } else {
+            // Panic on any other error
+            panic("sys_ipc_try_send error %e (%d)", r, r);
+        }
+    }
 }
 
 // Find the first environment of the given type.  We'll use this to
