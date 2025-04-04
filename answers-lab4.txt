@@ -1,0 +1,10 @@
+Q1:    The purpose of the macro MPBOOTPHYS is to link the correct physical address by translating it to where it is actually loaded.
+    This is not present in boot since it is already linked at 0x7... to be loaded. if this were omitted the wrong GDT would be used.
+
+Q2:    The kernel lock will guarantee that only one CPU is runing the kernel code. But if you don't make sure to have separate kernel stacks, the programs can still
+    Push to the kernel stacks while the lock is on, so you could get two different kernels mixing onto one stack and cause corruption.
+
+Q3:    e is mapped above kernelbase meaning it is in kernel address space. This means that it's address stays the same even between different page directories.
+
+Q4:    After you enter the trap handler, the kernel pushes registers to the trapframe and saves it in trap(). then before the environment pops again, the kernel
+    pops all the saved registers and switches to the new environment.
