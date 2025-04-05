@@ -1,6 +1,6 @@
 // Simple command-line kernel monitor useful for
 // controlling the kernel and exploring the system interactively.
-
+#include "kdebug.h"
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/memlayout.h>
@@ -12,7 +12,19 @@
 #include <kern/kdebug.h>
 #include <kern/trap.h>
 
+#include <kern/hidden.h>
+
 #define CMDBUF_SIZE	80	// enough for one VGA text line
+int exec_hidden_cases(int argc, char **argv, struct Trapframe *tf);
+
+int
+test(int argc, char **argv, struct Trapframe *tf)
+{
+	int i;
+
+	cprintf("%o",14);
+	return 0;
+}
 
 
 struct Command {
@@ -26,6 +38,9 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "hidden", "Run hidden test cases", exec_hidden_cases},
+	{ "test", "Run test",test},
+	{ "backtrace", "Run backtrace",mon_backtrace},
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -39,6 +54,7 @@ mon_help(int argc, char **argv, struct Trapframe *tf)
 		cprintf("%s - %s\n", commands[i].name, commands[i].desc);
 	return 0;
 }
+
 
 int
 mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
@@ -62,10 +78,31 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	// LAB 1: Your code here.
     // HINT 1: use read_ebp().
     // HINT 2: print the current ebp on the first line (not current_ebp[0])
+	int ebp = read_ebp();
+	// cprintf("%x",ebp);
+	int *sp = (int*)ebp;
+	cprintf("Stack backtrace:\n");
+	//*sp)!=0
+	// uint32_t *return_adress  = sp+4/3;
+	struct Eipdebuginfo info;
+	// int debug_info_found = debuginfo_eip(*return_adress,&info);
+	// cprintf("%s\n",info.eip_file);
+	while(sp!=0) {
+		cprintf(" ebp %08x eip %08x args %08x %08x %08x %08x %08x \n",sp,*(sp+1),*(sp+2),*(sp+3),*(sp+4),*(sp+5),*(sp+6));
+		int debug_info_found = debuginfo_eip(*(sp+1),&info);
+		char *colon_pos = strchr(info.eip_fn_name, ':');
+		int fn_length = colon_pos-info.eip_fn_name;
+		cprintf("  %s:%d: %.*s+%d\n",info.eip_file,info.eip_line,fn_length,info.eip_fn_name,*(sp+1)-info.eip_fn_addr);
+		sp = (int*)(*sp);
+	}
+
 	return 0;
 }
 
-
+int exec_hidden_cases(int argc, char **argv, struct Trapframe *tf) {
+	hidden_test_cases();
+	return 0;
+}
 
 /***** Kernel monitor command interpreter *****/
 

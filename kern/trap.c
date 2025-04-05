@@ -65,10 +65,6 @@ static const char *trapname(int trapno)
 	return "(unknown trap)";
 }
 
-
-// XYZ: write a function declaration here...
-// e.g., void t_divide();
-
 void
 trap_init(void)
 {
@@ -84,9 +80,54 @@ trap_init(void)
      *
      */
 	// LAB 3: Your code here.
+	extern void T_DIVIDE_handler();
+    extern void T_DEBUG_handler();
+    extern void T_NMI_handler();
+    extern void T_BRKPT_handler();
+    extern void T_OFLOW_handler();
+    extern void T_BOUND_handler();
+    extern void T_ILLOP_handler();
+    extern void T_DEVICE_handler();
+    extern void T_DBLFLT_handler();
+    extern void T_TSS_handler();
+    extern void T_SEGNP_handler();
+    extern void T_STACK_handler();
+    extern void T_GPFLT_handler();
+    extern void T_PGFLT_handler();
+    extern void T_FPERR_handler();
+    extern void T_MCHK_handler();
+    extern void T_SIMDERR_handler();
+    extern void T_SYSCALL_handler();
+    extern void T_DEFAULT_handler();
 
-	// Per-CPU setup
-	trap_init_percpu();
+    SETGATE(idt[T_DIVIDE],  0, GD_KT, T_DIVIDE_handler,  0);
+    SETGATE(idt[T_DEBUG],   0, GD_KT, T_DEBUG_handler,   0);
+    SETGATE(idt[T_NMI],     0, GD_KT, T_NMI_handler,     0);
+
+    SETGATE(idt[T_BRKPT],   1, GD_KT, T_BRKPT_handler,   3);
+
+    SETGATE(idt[T_OFLOW],   0, GD_KT, T_OFLOW_handler,   0);
+    SETGATE(idt[T_BOUND],   0, GD_KT, T_BOUND_handler,   0);
+    SETGATE(idt[T_ILLOP],   0, GD_KT, T_ILLOP_handler,   0);
+    SETGATE(idt[T_DEVICE],  0, GD_KT, T_DEVICE_handler,  0);
+
+    SETGATE(idt[T_DBLFLT],  0, GD_KT, T_DBLFLT_handler,  0);
+    SETGATE(idt[T_TSS],     0, GD_KT, T_TSS_handler,     0);
+    SETGATE(idt[T_SEGNP],   0, GD_KT, T_SEGNP_handler,   0);
+    SETGATE(idt[T_STACK],   0, GD_KT, T_STACK_handler,   0);
+    SETGATE(idt[T_GPFLT],   0, GD_KT, T_GPFLT_handler,   0);
+    SETGATE(idt[T_PGFLT],   0, GD_KT, T_PGFLT_handler,   0);
+
+    SETGATE(idt[T_FPERR],   0, GD_KT, T_FPERR_handler,   0);
+    SETGATE(idt[T_MCHK],    0, GD_KT, T_MCHK_handler,    0);
+    SETGATE(idt[T_SIMDERR], 0, GD_KT, T_SIMDERR_handler, 0);
+
+    SETGATE(idt[T_SYSCALL], 1, GD_KT, T_SYSCALL_handler, 3);
+
+    // If you want a default catchall vector=500, do likewise
+   
+    trap_init_percpu();
+	
 }
 
 // Initialize and load the per-CPU TSS and IDT
@@ -132,7 +173,6 @@ trap_init_percpu(void)
 	// Load the TSS selector (like other segment selectors, the
 	// bottom three bits are special; we leave them 0)
 	ltr(GD_TSS0);
-
 	// Load the IDT
 	lidt(&idt_pd);
 }
@@ -283,7 +323,9 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
-
+	if ((tf->tf_cs&3) == 0) {
+		panic("Kernel page fault!");
+	}
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
 
