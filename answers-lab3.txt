@@ -1,0 +1,24 @@
+Answer: 
+
+Part 1: 
+Having separate handler functions like assembly stubs and dispatch routines for each interrupt/exception lets the OS identify precisely which condition occurred and handle it in a specialized way. 
+For example: 
+
+Divide Error (#0) kills or debugs the process differently than a
+Breakpoint (#3) which may drop into a kernel monitor,
+Page Fault (#14) typically inspects cr2 and might do demand paging or kill the environment,
+Syscall (#48) is intentionally allowed from user mode.
+If all the exceptions were directed to the same single handler, you would lose the ability to selectively handle them. There would be no built-in way to tell what exception was it like if it was a divide zero or a page fault or a syscall?
+
+The x86 hardware conveys that information via the vector number, which in JOS we store in tf->tf_trapno. Each separate stub can push the correct trap number, and the OS can then dispatch with a switch statement on tf->tf_trapno.
+
+In other words, having distinct entries in the IDT (and thus distinct handler stubs) allows the kernel to give different privileges/permissions to breakpoints vs. syscalls vs. page faults, and to route them to specialized code. Without that separation, the OS could not, for example, let user mode invoke int $3 (breakpoint) or int $48 (syscall) while disallowing int $14 (page fault interrupt) from user code.
+
+Part 2: 
+In the softint test, user code does int $14. By default, interrupt vector 14 is the “page fault” entry in the IDT.
+However, user code is not allowed to invoke that interrupt directly if the OS has IDT entry 14 set to DPL=0 (kernel-only). 
+The hardware notices that the ring 3 tried to use a privileged interrupt and triggers a General Protection (#GP, vector 13) instead of going to the page fault handler.
+Thus the softint code triggers int $14 from user mode, but the CPU raises #GP (vector 13). 
+
+If the kernel actually permitted user ring 3 to do int $14, user code could fake a page fault interrupt whenever it wanted, possibly messing with the kernel’s normal page-fault flow. 
+That’s a security hole. Instead, the CPU enforces that certain interrupt vectors (like 14) are ring 0 only, so user attempts get #GP (13).
