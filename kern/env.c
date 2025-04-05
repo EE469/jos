@@ -11,11 +11,9 @@
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/monitor.h>
-#include <kern/sched.h>
-#include <kern/cpu.h>
-#include <kern/spinlock.h>
 
 struct Env *envs = NULL;		// All environments
+struct Env *curenv = NULL;		// The current env
 static struct Env *env_free_list;	// Free environment list
 					// (linked by Env->env_link)
 
@@ -36,7 +34,7 @@ static struct Env *env_free_list;	// Free environment list
 // definition of gdt specifies the Descriptor Privilege Level (DPL)
 // of that descriptor: 0 for kernel and 3 for user.
 //
-struct Segdesc gdt[NCPU + 5] =
+struct Segdesc gdt[] =
 {
 	// 0x0 - unused (always faults -- for trapping NULL far pointers)
 	SEG_NULL,
@@ -53,8 +51,7 @@ struct Segdesc gdt[NCPU + 5] =
 	// 0x20 - user data segment
 	[GD_UD >> 3] = SEG(STA_W, 0x0, 0xffffffff, 3),
 
-	// Per-CPU TSS descriptors (starting from GD_TSS0) are initialized
-	// in trap_init_percpu()
+	// 0x28 - tss, initialized in trap_init_percpu()
 	[GD_TSS0 >> 3] = SEG_NULL
 };
 
@@ -258,16 +255,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	e->env_tf.tf_esp = USTACKTOP;
 	e->env_tf.tf_cs = GD_UT | 3;
 	// You will set e->env_tf.tf_eip later.
-
-	// Enable interrupts while in user mode.
-	// LAB 4: Your code here.
-
-	// Clear the page fault handler until user installs one.
-	e->env_pgfault_upcall = 0;
-
-	// Also clear the IPC receiving flag.
-	e->env_ipc_recving = 0;
-
+	//e->env_tf.tf_eflags = FL_IF;
 	// commit the allocation
 	env_free_list = e->env_link;
 	*newenv_store = e;
@@ -500,26 +488,15 @@ env_free(struct Env *e)
 
 //
 // Frees environment e.
-// If e was the current env, then runs a new environment (and does not return
-// to the caller).
 //
 void
 env_destroy(struct Env *e)
 {
-	// If e is currently running on other CPUs, we change its state to
-	// ENV_DYING. A zombie environment will be freed the next time
-	// it traps to the kernel.
-	if (e->env_status == ENV_RUNNING && curenv != e) {
-		e->env_status = ENV_DYING;
-		return;
-	}
-
 	env_free(e);
 
-	if (curenv == e) {
-		curenv = NULL;
-		sched_yield();
-	}
+	cprintf("Destroyed the only environment - nothing more to do!\n");
+	while (1)
+		monitor(NULL);
 }
 
 
@@ -532,9 +509,6 @@ env_destroy(struct Env *e)
 void
 env_pop_tf(struct Trapframe *tf)
 {
-	// Record the CPU we are running on for user-space debugging
-	curenv->env_cpunum = cpunum();
-
 	asm volatile(
 		"\tmovl %0,%%esp\n"
 		"\tpopal\n"

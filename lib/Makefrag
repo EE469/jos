@@ -10,11 +10,6 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/string.c \
 			lib/syscall.c
 
-LIB_SRCFILES :=		$(LIB_SRCFILES) \
-			lib/pgfault.c \
-			lib/pfentry.S \
-			lib/fork.c \
-			lib/ipc.c
 
 
 

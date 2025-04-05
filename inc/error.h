@@ -14,9 +14,6 @@ enum {
 				// the maximum allowed
 	E_FAULT		,	// Memory fault
 
-	E_IPC_NOT_RECV	,	// Attempt to send to env that is not recving
-	E_EOF		,	// Unexpected end of file
-
 	MAXERROR
 };
 
