@@ -218,14 +218,12 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-<<<<<<< HEAD
 
 	// Initialize the SMP-related parts of the memory map
 	mem_init_mp();
-
-=======
+	
 	boot_map_region(kern_pgdir, KERNBASE, 0xffffffff - KERNBASE, 0, PTE_W | PTE_P);
->>>>>>> lab3
+
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -273,7 +271,11 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+	int i;
+	for (i = 0; i < NCPU; i++) {
+		uint32_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(kern_pgdir, kstacktop_i - KSTKSIZE, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W|PTE_P);
+	}
 }
 
 // --------------------------------------------------------------
@@ -315,9 +317,14 @@ page_init(void)
 	size_t i;
 	pages[0].pp_ref = 1;  //
 	for (i = 1; i < npages_basemem; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+		if (i == MPENTRY_PADDR / PGSIZE) {
+            pages[i].pp_ref = 1;
+        } 
+		else {
+            pages[i].pp_ref = 0;
+            pages[i].pp_link = page_free_list;
+            page_free_list = &pages[i];
+        }
 	}
 
 	for (i = IOPHYSMEM / PGSIZE; i < EXTPHYSMEM / PGSIZE; i++) {
@@ -609,7 +616,12 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	size = ROUNDUP(size, PGSIZE);
+    if (base + size > MMIOLIM)
+        panic("mmio_map_region: cannot go higher than MMIOLIM!\n");
+    boot_map_region(kern_pgdir, base, size, pa, (PTE_PCD|PTE_PWT|PTE_W|PTE_P));
+    base += size;
+    return (void *)(base - size);
 }
 
 static uintptr_t user_mem_check_addr;
