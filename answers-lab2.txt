@@ -1,0 +1,30 @@
+Exercise 5:
+a)
+
+Entry	Base Virtual Address	Points to (logically)
+1023	0xffc00000	Page table for top 4MB of physical memory
+1022	0xff800000	Page table for second top 4MB of physical memory
+...	...	...
+960	0xf0000000	Page table for first 4MB of physical memory
+959	0xefc00000	First 8 PDEs are page table for bootstack
+957	0xef400000	Page directory itself
+956	0xef000000	pages data structure
+955	0xeec00000	Unmapped
+...	...	Unmapped
+2	0x00800000	Unmapped
+1	0x00400000	Unmapped
+0	0x00000000	Unmapped
+
+
+
+b)
+it uses the protection mechanism of x86 protected mode, especially the page-Level protection
+
+c)
+1482 MB
+
+d)
+4100 KB
+
+e)
+The transition occurs after the jump to $relocated. In kern/entrypgdir.c, both the virtual address ranges [0, 4MB) and [KERNBASE, KERNBASE+4MB) are mapped to the physical address range [0, 4MB). This mapping is essential because the rest of the kernel is placed at high addresses in kern_pgdir, and once kern_pgdir is loaded, the virtual address range [0, 4MB) no longer corresponds to [0, 4MB). Additionally, [0, 4MB) is not specifically allocated for the kernel; rather, it is used temporarily before paging is enabled, as higher addresses like 0xf0000000 are not accessible at that stage.
