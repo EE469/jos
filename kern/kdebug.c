@@ -57,7 +57,8 @@ stab_binsearch(const struct Stab *stabs, int *region_left, int *region_right,
 		int true_m = (l + r) / 2, m = true_m;
 
 		// search for earliest stab with right type
-		while (m >= l && stabs[m].n_type != type)
+        while (m >= l && (stabs[m].n_type != type ||
+			 (stabs[m].n_type == N_FUN && stabs[m].n_strx == 0)))  // skip end-markers
 			m--;
 		if (m < l) {	// no match in [l, m]
 			l = true_m + 1;
@@ -86,7 +87,8 @@ stab_binsearch(const struct Stab *stabs, int *region_left, int *region_right,
 	else {
 		// find rightmost region containing 'addr'
 		for (l = *region_right;
-		     l > *region_left && stabs[l].n_type != type;
+		     l > *region_left && (stabs[l].n_type != type || 
+			 (type == N_FUN && stabs[l].n_strx == 0)); //skip end-markers 
 		     l--)
 			/* do nothing */;
 		*region_left = l;
