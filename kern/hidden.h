@@ -1,6 +1,10 @@
-#include "inc/stdio.h"
-#include <inc/types.h>
+#include <inc/x86.h>
+#include <inc/mmu.h>
+#include <inc/error.h>
 #include <inc/string.h>
-#include "inc/types.h"
+#include <inc/assert.h>
 
-bool hidden_test_cases(); 
+#include <kern/pmap.h>
+#include <kern/kclock.h>
+
+void hidden_test_cases();
