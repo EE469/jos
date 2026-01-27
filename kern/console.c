@@ -452,11 +452,97 @@ cons_init(void)
 
 // `High'-level console I/O.  Used by readline and cprintf.
 
+// ANSI escape sequence parsing state
+static uint16_t cons_attr = 0x0700;  // default VGA attribute = light gray on black
+static int ansi_state = 0;  // 0 = normal, 1 = saw ESC, 2 = saw ESC[
+static int ansi_val = 0;
+static int ansi_have_val = 0;
+
+static void
+ansi_apply(int code)
+{
+	if (code == 0) {
+		// Reset to default
+		cons_attr = 0x0700;
+	} else if (code >= 30 && code <= 37) {
+		static uint8_t ansi_to_vga[] = {0, 4, 2, 6, 1, 5, 3, 7}; 
+		uint8_t vga_color = ansi_to_vga[code - 30];
+		cons_attr = (cons_attr & 0xF0FF) | (vga_color << 8);  
+	} else if (code >= 90 && code <= 97) {
+		static uint8_t ansi_to_vga_bright[] = {8, 12, 10, 14, 9, 13, 11, 15}; 
+		uint8_t vga_color = ansi_to_vga_bright[code - 90];
+		cons_attr = (cons_attr & 0xF0FF) | (vga_color << 8);  
+	} else if (code >= 40 && code <= 47) {
+		static uint8_t ansi_to_vga_bg[] = {0, 4, 2, 6, 1, 5, 3, 7};
+		uint8_t vga_color = ansi_to_vga_bg[code - 40];
+		cons_attr = (cons_attr & 0x0FFF) | (vga_color << 12);  
+	}
+}
+
+
 void
 cputchar(int c)
 {
-	cons_putc(c);
+	unsigned char ch = (unsigned char)(c & 0xFF);
+
+	// NORMAL state
+	if (ansi_state == 0) {
+		if (ch == 0x1B) {   
+			serial_putc(ch);
+			lpt_putc(ch);
+			ansi_state = 1;
+			ansi_val = 0;
+			ansi_have_val = 0;
+			return;        
+		}
+		cons_putc(cons_attr | ch);
+		return;
+	}
+
+
+	if (ansi_state == 1) {
+		serial_putc(ch);
+		lpt_putc(ch);
+
+		if (ch == '[') {
+			ansi_state = 2;
+			ansi_val = 0;
+			ansi_have_val = 0;
+			return;         
+		}
+		ansi_state = 0;
+		cons_putc(cons_attr | ch);
+		return;
+	}
+
+	serial_putc(ch);
+	lpt_putc(ch);
+
+	if (ch >= '0' && ch <= '9') {
+		ansi_val = ansi_val * 10 + (ch - '0');
+		ansi_have_val = 1;
+		return;             
+	}
+
+	if (ch == ';') {
+		ansi_apply(ansi_have_val ? ansi_val : 0);
+		ansi_val = 0;
+		ansi_have_val = 0;
+		return;
+	}
+
+	if (ch == 'm') {
+		ansi_apply(ansi_have_val ? ansi_val : 0);
+		ansi_state = 0;
+		ansi_val = 0;
+		ansi_have_val = 0;
+		return;
+	}
+
+	ansi_state = 0;
+	cons_putc(cons_attr | ch);
 }
+
 
 int
 getchar(void)

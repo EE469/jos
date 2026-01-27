@@ -21,10 +21,15 @@ struct Command {
 	int (*func)(int argc, char** argv, struct Trapframe* tf);
 };
 
+
+
 // LAB 1: add your command to here...
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Show the backtrace of the current kernel stack", mon_backtrace },
+	{ "hidden", "Run hidden test cases", exec_hidden_cases},
+	{ "show", "Print colorful ASCII art", mon_show },
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -55,15 +60,89 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// LAB 1: Your code here.
-    // HINT 1: use read_ebp().
-    // HINT 2: print the current ebp on the first line (not current_ebp[0])
+	uint32_t ebp = read_ebp();
+
+	cprintf("Stack backtrace:\n");
+	while (ebp != 0) {
+		uint32_t eip = ((uint32_t *)ebp)[1];
+
+		// print frame header line
+		cprintf("  ebp %08x  eip %08x  args", ebp, eip);
+
+		// print first 5 args (words above saved eip)
+		uint32_t *args = (uint32_t *)ebp + 2;
+		for (int i = 0; i < 5; i++)
+			cprintf(" %08x", args[i]);
+		cprintf("\n");
+
+		// print debug info line (MUST be on its own line for grader)
+		struct Eipdebuginfo info;
+		if (debuginfo_eip(eip, &info) == 0) {
+			cprintf("         %s:%d: %.*s+%d\n",
+								info.eip_file,
+								info.eip_line,
+								info.eip_fn_namelen, info.eip_fn_name,
+								eip - info.eip_fn_addr);
+
+		} else {
+			cprintf("         <unknown>\n");
+		}
+
+		// follow saved ebp chain
+		ebp = ((uint32_t *)ebp)[0];
+	}
+
 	return 0;
 }
 
+
+
+
+int exec_hidden_cases(int argc, char **argv, struct Trapframe *tf) {
+	hidden_test_cases();
+	return 0;
+}
+
+int
+mon_show(int argc, char **argv, struct Trapframe *tf)
+{
+    cprintf("\x1b[31m");
+    cprintf("███████╗ ██████╗ ███████╗\n");
+    cprintf("██╔════╝██╔════╝ ██╔════╝\n");
+
+    cprintf("\x1b[32m");
+    cprintf("█████╗  ██║      █████╗  \n");
+    cprintf("██╔══╝  ██║      ██╔══╝  \n");
+
+
+    cprintf("\x1b[33m");
+    cprintf("███████╗╚██████╗ ███████╗\n");
+    cprintf("╚══════╝ ╚═════╝ ╚══════╝\n");
+
+    cprintf("\n");
+
+
+    cprintf("\x1b[34m");
+    cprintf("██╗  ██╗ ██████╗  █████╗ \n");
+    cprintf("██║  ██║██╔════╝ ██╔══██╗\n");
+
+    cprintf("\x1b[35m");
+    cprintf("███████║███████╗ ███████║\n");
+    cprintf("╚════██║╚════██║ ╚════██║\n");
+
+    cprintf("\x1b[36m");
+    cprintf("██║  ██║███████║ ██║  ██║\n");
+    cprintf("╚═╝  ╚═╝╚══════╝ ╚═╝  ╚═╝\n");
+    cprintf("\n");
+    cprintf("\x1b[31m*\x1b[32m*\x1b[33m*\x1b[34m*\x1b[35m*\x1b[36m*\x1b[0m\n");
+
+    cprintf("\x1b[0m");
+    return 0;
+}
 
 
 /***** Kernel monitor command interpreter *****/
@@ -78,7 +157,6 @@ runcmd(char *buf, struct Trapframe *tf)
 	char *argv[MAXARGS];
 	int i;
 
-	// Parse the command buffer into whitespace-separated arguments
 	argc = 0;
 	argv[argc] = 0;
 	while (1) {
@@ -114,6 +192,7 @@ void
 monitor(struct Trapframe *tf)
 {
 	char *buf;
+	
 
 	cprintf("Welcome to the JOS kernel monitor!\n");
 	cprintf("Type 'help' for a list of commands.\n");
