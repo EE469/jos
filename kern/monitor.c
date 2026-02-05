@@ -14,6 +14,8 @@
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
+static int exec_hidden_cases(int argc, char **argv, struct Trapframe *tf); // <-- ADD THIS
+
 
 struct Command {
 	const char *name;

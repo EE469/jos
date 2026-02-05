@@ -112,6 +112,7 @@ static void * boot_alloc(uint32_t n){
 		nextfree = ROUNDUP(nextfree + n, PGSIZE);
 		return result;
 	}
+	return NULL;
 }
 
 
@@ -185,6 +186,8 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+
+
 	//boot_map_region(kern_pgdir, UPAGES, npages * sizeof(struct PageInfo), PADDR(pages), PTE_U | PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
@@ -210,6 +213,8 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+
+	
 	//boot_map_region(kern_pgdir, KERNBASE, npages * PGSIZE, 0, PTE_W | PTE_P);
 
 
@@ -384,11 +389,35 @@ page_decref(struct PageInfo* pp)
 // Hint 3: look at inc/mmu.h for useful macros that manipulate page
 // table and page directory entries.
 //
-pte_t *
-pgdir_walk(pde_t *pgdir, const void *va, int create)
-{
+pte_t * pgdir_walk(pde_t *pgdir, const void *va, int create){
 	// Fill this function in
-	return NULL;
+	pde_t *pde = &pgdir[PDX(va)];
+	if ((*pde & PTE_P ) == 0) {
+		// means there is no page table
+		if(create == 0){
+			return NULL;
+		}
+		// else create == 1
+		struct PageInfo *pageAllocated = page_alloc(ALLOC_ZERO);
+		pageAllocated->pp_ref++;
+		if(pageAllocated == NULL){
+			return NULL;
+		}
+		*pde = page2pa(pageAllocated) | (PTE_P | PTE_W | PTE_U);
+		physaddr_t pt_pa = PTE_ADDR(*pde);   
+		pte_t *pt = (pte_t*) KADDR(pt_pa);  
+		return(&pt[PTX(va)]);
+	}else{
+		if(create == 0){
+			physaddr_t pt_pa = PTE_ADDR(*pde);   
+			pte_t *pt = (pte_t*) KADDR(pt_pa);  
+			return(&pt[PTX(va)]);
+		}else{
+			physaddr_t pt_pa = PTE_ADDR(*pde);   
+			pte_t *pt = (pte_t*) KADDR(pt_pa);  
+			return(&pt[PTX(va)]);
+		}
+	}
 }
 
 //
