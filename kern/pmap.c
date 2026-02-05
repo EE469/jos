@@ -399,10 +399,11 @@ pte_t * pgdir_walk(pde_t *pgdir, const void *va, int create){
 		}
 		// else create == 1
 		struct PageInfo *pageAllocated = page_alloc(ALLOC_ZERO);
-		pageAllocated->pp_ref++;
+		
 		if(pageAllocated == NULL){
 			return NULL;
 		}
+		pageAllocated->pp_ref++;
 		*pde = page2pa(pageAllocated) | (PTE_P | PTE_W | PTE_U);
 		physaddr_t pt_pa = PTE_ADDR(*pde);   
 		pte_t *pt = (pte_t*) KADDR(pt_pa);  
