@@ -67,6 +67,7 @@ endif
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 
 CC	:= $(GCCPREFIX)gcc -pipe
+GDB	:= $(GCCPREFIX)gdb
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
 LD	:= $(GCCPREFIX)ld
@@ -87,7 +88,7 @@ CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD
 CFLAGS += -fno-omit-frame-pointer
 CFLAGS += -std=gnu99
 CFLAGS += -static
-CFLAGS += -Wall -Wno-format -Wno-unused -Werror -ggdb3 -gstabs -m32
+CFLAGS += -Wall -Wno-format -Wno-unused -Werror -ggdb3 -m32
 # -fno-tree-ch prevented gcc from sometimes reordering read_ebp() before
 # mon_backtrace()'s function prologue on gcc version: (Debian 4.7.2-5) 4.7.2
 CFLAGS += -fno-tree-ch
@@ -120,8 +121,8 @@ all:
 	   $(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/net/%.o \
 	   $(OBJDIR)/user/%.o
 
-KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -gstabs -ggdb3
-USER_CFLAGS := $(CFLAGS) -DJOS_USER -gstabs -ggdb3
+KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -ggdb3
+USER_CFLAGS := $(CFLAGS) -DJOS_USER -ggdb3
 
 # Update .vars.X if variable X has changed since the last make run.
 #
@@ -137,6 +138,8 @@ $(OBJDIR)/.vars.%: FORCE
 # Include Makefrags for subdirectories
 include boot/Makefrag
 include kern/Makefrag
+include lib/Makefrag
+include user/Makefrag
 
 
 QEMUOPTS = -drive file=$(OBJDIR)/kern/kernel.img,index=0,media=disk,format=raw -serial mon:stdio -gdb tcp::$(GDBPORT)
@@ -279,6 +282,22 @@ myapi.key:
 #handin-prep:
 #	@./handin-prep
 
+# For test runs
+
+prep-%:
+	$(V)$(MAKE) "INIT_CFLAGS=${INIT_CFLAGS} -DTEST=`case $* in *_*) echo $*;; *) echo user_$*;; esac`" $(IMAGES)
+
+run-%-nox-gdb: prep-% pre-qemu
+	$(QEMU) -nographic $(QEMUOPTS) -S
+
+run-%-gdb: prep-% pre-qemu
+	$(QEMU) $(QEMUOPTS) -S
+
+run-%-nox: prep-% pre-qemu
+	$(QEMU) -nographic $(QEMUOPTS)
+
+run-%: prep-% pre-qemu
+	$(QEMU) $(QEMUOPTS)
 
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,
