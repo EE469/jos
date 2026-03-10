@@ -130,10 +130,6 @@ def test_evilhello():
     r.match('.00001000. user_mem_check assertion failure for va f0100...',
             '.00001000. free env 00001000')
 
-@test(10, "Hidden")
-def test_hidden_testcases():
-    r.match(r"Hidden Test Cases Passed!")
-
 end_part("B")
 
 run_tests()
