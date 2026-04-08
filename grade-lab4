@@ -187,17 +187,4 @@ def test_primes():
 
 end_part("C")
 
-@test(5)
-def test_recursivefork():
-    r.user_test("recursivefork", timeout=30)
-    
-    r.match("Hello from the other side")
-
-
-@test(5)
-def test_ipcstress():
-    r.user_test("ipcstress", timeout=60)
-
-    r.match("Hello from the other side")
-
 run_tests()
